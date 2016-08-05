@@ -98,6 +98,7 @@ dataList <- list(N = nrow(emery),
 ```
 
 
+Gamma scaled version -- best
 ```{r}
 watch <- c("a", "b", "c","d", "e", "e1", "mu",
            #"hyper_c","sigma_c",

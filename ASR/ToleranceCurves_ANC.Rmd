@@ -156,9 +156,9 @@ for(i in 1:ndraws){
   for(j in 1:nspp){
     sppMat[j,] <- stretch.kumara2(
           xs = xseq_comm,
-          a = posts_Normal$a[i,j], b = posts_Normal$b[i,j], 
-          c = posts_Normal$c[i,j], #/sppMaxVal[j], 
-          d = posts_Normal$d[i,j], e1 = posts_Normal$e1[i,j]
+          a = posts$a[i,j], b = posts$b[i,j], 
+          c = posts$c[i,j], #/sppMaxVal[j], 
+          d = posts$d[i,j], e1 = posts$e1[i,j]
           )
   }
   
@@ -228,6 +228,7 @@ plot.phylo(lasth, label.offset = 0.04, edge.width = 3)
 !!!!!
 nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
 !!!!!
+  
 nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
 
 matchset <- match(lasth$tip.label, Genus_species)
@@ -327,11 +328,11 @@ ouwie_maxima <- ouwie_draws(df = maximadf, draws = 100, mod = "OUM")
 plot_ouwie_draws(ouwie_maxima)
 compare_ouwie_draws(ouwie_maxima)
 
-ouwie_c <- ouwie_draws(df = posts_Normal$c, draws = 100, mod = "OUM")
+ouwie_c <- ouwie_draws(df = posts$c, draws = 100, mod = "OUM")
 plot_ouwie_draws(ouwie_c)
 compare_ouwie_draws(ouwie_c)
 
-ouwie_e1 <- ouwie_draws(df = posts_Normal$e1, draws = 100, mod = "OUM")
+ouwie_e1 <- ouwie_draws(df = posts$e1, draws = 100, mod = "OUM")
 plot_ouwie_draws(ouwie_e1)
 compaire_ouwie_draws(ouwie_e1)
 
@@ -475,11 +476,11 @@ phenoCred <- function( trait_chain, tree, fig_name){
   dev.off()
 }
 
-phenoCred(trait_chain = posts_Normal$a, tree = lasth, fig_name = "figures/parameterA")
-phenoCred(trait_chain = posts_Normal$b, tree = lasth, fig_name = "figures/parameterB")
-phenoCred(trait_chain = posts_Normal$c, tree = lasth, fig_name = "figures/parameterC")
-phenoCred(trait_chain = posts_Normal$d, tree = lasth, fig_name = "figures/parameterD")
-phenoCred(trait_chain = posts_Normal$e1, tree = lasth, fig_name = "figures/parameterE1")
+phenoCred(trait_chain = posts$a, tree = lasth, fig_name = "figures/parameterA")
+phenoCred(trait_chain = posts$b, tree = lasth, fig_name = "figures/parameterB")
+phenoCred(trait_chain = posts$c, tree = lasth, fig_name = "figures/parameterC")
+phenoCred(trait_chain = posts$d, tree = lasth, fig_name = "figures/parameterD")
+phenoCred(trait_chain = posts$e1, tree = lasth, fig_name = "figures/parameterE1")
 phenoCred(trait_chain = maximadf, tree = lasth, fig_name = "figures/maxima")
 ```
 

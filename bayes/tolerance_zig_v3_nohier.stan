@@ -32,9 +32,9 @@ transformed data {
 parameters {
    
   #species level
-  real <lower = 2> a[numSpp];
-  real <lower = 2> b[numSpp];
-  real <lower = 1> c[numSpp];
+  real <lower = 1> a[numSpp];
+  real <lower = 1> b[numSpp];
+  real <lower = 0> c[numSpp];
 
   real <upper = minx> d[numSpp];
   real <lower = maxx> e[numSpp];

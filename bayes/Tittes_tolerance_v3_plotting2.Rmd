@@ -99,6 +99,7 @@ tden <- apply(maximadf, 2, density)
 ylimit <- max(sapply(tden, function(x) max(x$y)))
 xlimit <- range(sapply(tden, function(x) range(x$x)))
 plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
+mtext(text = "maxima", side = 3)
 lapply(tden, lines)
 
 par(opar)
