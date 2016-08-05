@@ -64,9 +64,9 @@ priorDens <- list(a = NULL, b = NULL, c = NULL,
                   d = NULL, e1 = NULL)
 
 nn <- 10000
-priorDens$a <- density(rnorm(nn, 2, 2))
-priorDens$b <- density(rnorm(nn, 2, 2))
-priorDens$c <- density(rnorm(nn, 2, 2))
+priorDens$a <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 1))
+priorDens$b <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 1))
+priorDens$c <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 0))
 priorDens$d <- density(rtruncnorm(nn, mean = min(emery$treat), 
                                   sd = 2, b = min(emery$treat)))
 priorDens$e1 <- density(rtruncnorm(nn, mean = max(emery$treat), 
@@ -82,14 +82,14 @@ for(i in namez){
   cPost <- posts[[i]]
   if(length(dim(cPost)) < 2){
     plot(density(cPost), xlab="", ylab="", main="")
-    polygon(priorDens[[i]], col="red")
+    polygon(priorDens[[i]], col="grey60", border = F)
     mtext(text = i, side = 3)
   } else {
     tden <- apply(cPost, 2, density)
     ylimit <- max(sapply(tden, function(x) max(x$y)))
     xlimit <- range(sapply(tden, function(x) range(x$x)))
     plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
-    polygon(priorDens[[i]], col="grey60")
+    polygon(priorDens[[i]], col="grey60", border = F)
     mtext(text = i, side = 3)
     lapply(tden, lines)
   }
@@ -274,15 +274,24 @@ sapply(mden, FUN = function(x) lines(x = x$y, y = x$x) )
 Plotting observed versus predicted
 ```{r}
 meanDraws <- apply(X = posts$mu, 2, mean)
-plot(emery$Inflor_biomass, meanDraws)
-abline(0,1, lty=2, col="red")
-plot(meanDraws, emery$Inflor_biomass - meanDraws,
+
+predDF <- data.frame(meanDraws = meanDraws,
+                     Inflor_biomass = emery$Inflor_biomass)
+predDF_nZero <- predDF[predDF$Inflor_biomass !=0,]
+predDF_Zero <- predDF[predDF$Inflor_biomass == 0,]
+
+#plot(emery$Inflor_biomass, meanDraws)
+#abline(0,1, lty=2, col="red")
+plot(predDF_nZero$meanDraws, predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws,
      pch=as.integer(emery$Species))
+points(predDF_Zero$meanDraws, predDF_Zero$Inflor_biomass - predDF_Zero$meanDraws,
+     pch="z", cex=2)
+abline(h=0)
 
-#abline(h=0)
-
-smth <- smooth.spline(meanDraws, emery$Inflor_biomass - meanDraws)
+smth <- smooth.spline(predDF_nZero$meanDraws, 
+                      predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws)
 lines(smth$x, smth$y)
+
 
 ```
 
