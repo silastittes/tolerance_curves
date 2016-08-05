@@ -1,0 +1,305 @@
+---
+title: "tolerance curves"
+author: "Silas Tittes"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    fig_caption: yes
+---
+
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+
+#packages
+library(rmarkdown)
+library(knitr)
+library(formatR)
+library(xtable)
+library(dplyr)
+library(rstan)
+library(ggplot2)
+library(smoothmest)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+options(scipen=99) #avoid scientific notation when printing
+opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, message=FALSE, results='hide'))
+options(bitmapType="cairo")
+
+
+opar <- par()
+opar$cin <- NULL
+opar$cra <- NULL
+opar$csi <- NULL
+opar$cxy <- NULL
+opar$din <- NULL
+opar$page <- NULL
+```
+
+
+## Data prep
+```{r}
+source("tolerance_functions.R")
+setwd("~/Documents/Projects/toleranceCurves/bayes/")
+source("tolerance_functions.R")
+emery <- read.csv("NEmeryData.csv", header=T)
+emery <- emery[is.na(emery$Inflor_biomass) == 0,]
+
+###DELETE THIS###
+#emery <- emery[emery$Inflor_biomass != 0,]
+
+emery$treat <- rep(NA, nrow(emery))
+
+#make new column with treatments quant instead of nominal
+for(i in 1:nrow(emery)){
+  if( emery$Treatment[i] == "F"){
+    emery$treat[i]  <- 5
+  } else if(emery$Treatment[i] == "MF"){
+    emery$treat[i]  <- 4
+  } else if(emery$Treatment[i] == "B"){
+    emery$treat[i]  <- 3
+  } else if (emery$Treatment[i] == "MD"){
+    emery$treat[i]  <- 2
+  } else if (emery$Treatment[i] == "D"){
+    emery$treat[i]  <- 1
+  } else {
+    emery$treat[i]  <- NA
+  }
+}
+
+#make another new column with species as integers instead of nominal for stan
+species <- unique(emery$Species)
+sppint <- 1:length(species)
+emery$sppint <- rep(NA, nrow(emery))
+for(i in 1:length(species)){
+  emery$sppint[emery$Species %in% species[i]]  <- sppint[i]
+}
+
+#emery <- arrange(emery, sppint)
+#emery <- arrange(emery, treat)
+
+
+biomass_max <- by(data = emery$Inflor_biomass, INDICES = emery$Species, FUN = max)
+emery$Inflor_biomass[emery$Species == "minor"]
+unique(names(biomass_max))
+```
+
+
+## The model
+```{r}
+dataList <- list(N = nrow(emery), 
+		 x = emery$treat, 
+		 y = emery$Inflor_biomass,
+		 numSpp = length(unique(emery$sppint)),
+		 sppint = emery$sppint
+		)
+```
+
+
+```{r}
+#stan.fit <- stan(file = "tolerance_hier_noCorr.stan", 
+#                 data = dataList, iter = 60000,
+#                 pars = c("hyper_a","hyper_b", "hyper_c",
+#                          "sigma_a", "sigma_b", "sigma_c", 
+#                          "a", "b", "c", "d1", "e1", "sigma")) 
+
+#stan.fit <- stan(file = "tolerance_hier_noCorr.stan", data = dataList)
+
+#stan.fit <- stan(file = "tolerance_noHier_noCorr_sameMinMax.stan",
+#                 data = dataList,
+#                 pars=c("hyper_a","hyper_b", "hyper_c", "hyper_d", "hyper_e",
+#                        "sigma_a","sigma_b","sigma_c", "sigma_d", "sigma_e", 
+#                        "a", "b", "c", "d", "e1", "sigma")
+#                 )#, "theta"
+
+
+watch <- c("a", "b", "c","d", "e", "e1", 
+           #"hyper_c","sigma_c",
+           #"hyper_d","sigma_d",
+           #"hyper_e","sigma_e",
+           "nu", "beta_0", "beta_1")
+stan.fit <- stan(file = "tolerance_zig_v3_nohier.stan",
+                     data = dataList,
+                 iter = 10000, chains = 4,
+                 pars = watch,
+                sample_file = "tolerance_zig_v2.samples",
+                diagnostic_file = "tolerance_zig_v2.diag"
+)
+
+
+#stan.fit <- stan(file = "tolerance_noHier_noCorr_sameMinMax.stan", data = dataList,
+#                 control = list(adapt_delta =0.9),
+#                pars=c("hyper_c", "hyper_d", "hyper_e", 
+#                       "sigma_c", "sigma_d", "sigma_e",
+#                       "a", "b", "c", "d", "e1", "sigma")#, "theta"),
+#                )
+
+
+#stan.fit <- stan(file = "tolerance_noHier_noCorr.stan", data = dataList, control = list(adapt_delta = 0.9, max_treedepth = 12), iter = 50)
+
+#rstan::traceplot(stan.fit, par=c("hyper_a"))
+#rstan::traceplot(stan.fit, par=c("hyper_b"))
+rstan::traceplot(stan.fit, par=c("a"))
+rstan::traceplot(stan.fit, par=c("b"))
+rstan::traceplot(stan.fit, par=c("c"))
+rstan::traceplot(stan.fit, par=c("hyper_c"))
+rstan::traceplot(stan.fit, par=c("sigma_c"))
+rstan::traceplot(stan.fit, par=c("d"))
+rstan::traceplot(stan.fit, par=c("e1"))
+
+
+stan.fit
+posts <- extract(stan.fit)
+summs <- summary(stan.fit)$summary
+```
+
+
+```{r}
+library(truncnorm)
+
+par(mfrow=c(3,2))
+par(mar=c(3,3,1,1))
+
+denA_pr <- density( rtruncnorm(n = nrow(posts$lp__), mean = 2, sd = 2, a = 2) )
+denA <- density(posts$a[,1])
+plot(denA$x, denA$y, xlim=range(posts$a), ylim=c(0,0.9),type="n")
+polygon(denA_pr, col="red")
+for(i in 1:dataList$numSpp){
+  cDenA <- density(posts$a[,i])
+  lines(cDenA$x, cDenA$y)
+}
+legend("topright", "a", bty="n", cex=2)
+
+denB_pr <- density( rtruncnorm(n = nrow(posts$lp__), mean = 2, sd = 2, a = 2) )
+denB <- density(posts$b[,1])
+plot(denB$x, denB$y, xlim=range(posts$b), type="n", ylim=c(0,2))
+polygon(denB_pr, col="red")
+for(i in 1:dataList$numSpp){
+  cDenB <- density(posts$b[,i])
+  lines(cDenB$x, cDenB$y)
+}
+legend("topright", "b", bty="n", cex=2)
+
+
+denC_pr <- density( rtruncnorm(n = nrow(posts$lp__), mean = 1, sd = 2, a = 1) )
+denC <- density(posts$c)
+plot(denC$x, denC$y, xlim=range(posts$c), type="n", ylim=c(0,1.2))
+polygon(denC_pr, col="red")
+polygon(denC, col="dodgerblue")
+for(i in 1:dataList$numSpp){
+  cDenC <- density(posts$c[,i])
+  lines(cDenC$x, cDenC$y)
+}
+legend("topright", "c", bty="n", cex=2)
+
+denD_pr <- density( rtruncnorm(n = nrow(posts$lp__), mean = min(emery$treat), sd = 2, b = min(emery$treat)) )
+denD <- density(posts$hyper_d)
+plot(denD$x, denD$y, xlim=range(posts$d), type="n", ylim=c(0,0.45))
+polygon(denD_pr, col="red")
+polygon(denD, col="dodgerblue")
+for(i in 1:dataList$numSpp){
+  cDenD <- density(posts$d[,i])
+  lines(cDenD$x, cDenD$y)
+}
+legend("topleft", "d", bty="n", cex=2)
+
+denE_pr <- density( rtruncnorm(n = nrow(posts$lp__), mean = max(emery$treat), sd = 2, a = max(emery$treat) ))
+denE1 <- density(posts$hyper_e - posts$hyper_d)
+plot(denC$x, denC$y, xlim=range(posts$e1), type="n", ylim=c(0,1))
+polygon(denE_pr, col="red")
+polygon(denE1, col="dodgerblue")
+for(i in 1:dataList$numSpp){
+  #cDenC <- density(posts$e[,i])
+  #lines(cDenC$x, cDenC$y)
+  cDenC <- density(posts$e1[,i])
+  lines(cDenC$x, cDenC$y)
+}
+legend("topright", "e", bty="n", cex=2)
+
+par(opar)
+```
+
+
+```{r}
+corrCE <- NULL
+for(i in 1:nrow(posts$lp__)){
+  cCorr <- cor(posts$c[i,], posts$e1[i,])
+  corrCE <- c(corrCE, cCorr)
+}
+hist(corrCE)
+mean(corrCE > 0)
+meanz <- summs[,1]
+plot(meanz[grep(pattern = "e1", names(meanz))], meanz[grep(pattern = "^c", names(meanz))])
+cor(meanz[grep(pattern = "e1", names(meanz))], meanz[grep(pattern = "^c", names(meanz))])
+```
+
+
+```{r}
+xseq <- seq(0,1, length.out=500)
+
+
+par(mfrow=c(1,1))
+#par(mar=c(3,3,1,1))
+#
+
+#xlow <- min(posts$d)
+#xhigh <- max(posts$e1+posts$d)
+#yrng <- c(0, max(emery$Inflor_biomass))
+  
+  for(j in 1:max(emery$sppint)){
+    
+    emery_sub <- subset(emery, sppint == j)
+    
+    cSpp <- as.character(unique(emery_sub$Species))
+    #plot( jitter(emery$treat), emery$Inflor_biomass, xlim=c(xlow, xhigh), type="n")
+    #plot( jitter(emery_sub$treat), emery_sub$Inflor_biomass, xlim=c(xlow, xhigh), type="n")
+    
+    xlow <- mean(posts$d[,j])
+    xhigh <- mean(posts$e1[,j]+posts$d[,j])
+    
+    #pdf(file = paste0("figures/",cSpp,".pdf"))
+    #png(filename = paste0("figures/",cSpp,".png"))
+    
+    plot( jitter(emery_sub$treat), emery_sub$Inflor_biomass, type="n", xlim=c(xlow, xhigh))
+  
+    for(i in 1:nrow(posts$lp__)){
+    mod.fit <- stretch.kumara(x = xseq, a= posts$a[i,j],# + posts$hyper_a[i],
+                              b = posts$b[i,j],# + posts$hyper_b[i],
+                              c = posts$c[i,j] # + posts$hyper_c[i]
+                              )
+      lines(xseq*posts$e1[i,j] + posts$d[i,j], mod.fit, lwd=1, lty=2)
+    }
+  
+    points( jitter(emery_sub$treat), emery_sub$Inflor_biomass, pch=19, col="dodgerblue")
+    spln <- smooth.spline(emery_sub$treat, emery_sub$Inflor_biomass)
+    lines(spln$x, spln$y, lwd=2, col="red")
+    legend("topleft", cSpp, bty="n", cex=1.1)
+    
+    #dev.off()
+  }
+
+par(opar)
+
+```
+
+
+
+```{r}
+# add line for every draw
+
+mu_vals <- seq(min(emery$Inflor_biomass), max(emery$Inflor_biomass), length.out = 1000)
+
+library(scales)
+plot(x = NULL, y = NULL, xlim = range(emery$Inflor_biomass), ylim = c(0, 1),
+     xlab = "mu", ylab = 'Pr(zero)')
+for (i in 1:nrow(posts$lp__)) {
+  lines(mu_vals, plogis(posts$beta_0[i] + posts$beta_1[i] * mu_vals))
+}
+```
+
+
+```{r}
+plot(jitter(emery$treat), jitter(as.numeric(emery$Inflor_biomass > 0)), pch=19, cex=0.5)
+```
+

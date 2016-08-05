@@ -1,0 +1,5 @@
+latex Tittes_Emery_draft.tex
+bibtex Tittes_Emery_draft.tex
+latex Tittes_Emery_draft.tex
+latex Tittes_Emery_draft.tex
+pdflatex Tittes_Emery_draft.tex

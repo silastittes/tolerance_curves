@@ -1,0 +1,487 @@
+---
+title: "Goolsby Methods -- Emery Data"
+author: "Silas Tittes"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    fig_caption: yes 
+---
+
+
+```{r, message=FALSE}
+setwd("~/Documents/Projects/toleranceCurves/")
+#load all data
+source("~/Documents/Projects/toleranceCurves/bayes/tolerance_functions.R")
+source("functions.R")
+```
+
+Ancestral state reconstruction of tolerance curves. 
+
+First, lets simulate some data from the stretched kumarswamy function.
+```{r, fig.cap="Simulated tolerance curves. The e and d parametes are included, which allows for shifts in the index variable range.", message=FALSE}
+stretch.kumara <- function(x, a, b, c){
+  return(c*((a*b*x^(a-1) ) * (1-x^a)^(b-1)))
+}
+
+#sketchy upper half normal 
+rhnorm <- function(n, mu, sigma, half){
+  init1 <- rnorm(n*10, mu, sigma)
+  init2 <- init1[init1 >= half]
+  init3 <- sample(x = init2, size = n, replace = T)
+  return(init3)
+}
+
+#sketchy lower half normal
+rlhnorm <- function(n, mu, sigma, half){
+  init1 <- rnorm(n*10, mu, sigma)
+  init2 <- init1[init1 <= half]
+  init3 <- sample(x = init2, size = n, replace = T)
+  return(init3)
+}
+
+
+#data structure and size
+nSpp <- length(lasth$tip.label)
+ncurve <- 20 #number of points to make curve with
+xseq <- seq(0,1, length.out=ncurve)
+
+
+#parameters for each species
+a <- rhnorm(n = nSpp, mu = 5, sigma =  1, half = 2)
+b <- rhnorm(n = nSpp, mu = 5, sigma =  1, half = 2)
+c <- rhnorm(n = nSpp, mu = 1, sigma =  2, half = 2)
+d <- rlhnorm(n = nSpp, mu = 1 , sigma =  5, half = 1)
+e <- rhnorm(n = nSpp, mu = 5, sigma = 5, half = 5)
+e1 <- e - d
+sigma <- rhnorm(n = 1, mu = 0, sigma =  2, half = 0)
+
+#array organization
+#first row of each page is x values
+#second row of each page is y values
+#each page is a species
+curveDat <- array(NA, dim=list(2, ncurve, nSpp))
+for(i in 1:nSpp){
+  curveDat[1,,i] <- xseq*e[i] -d[i] #observation scaled x vales
+  curveDat[2,,i] <- stretch.kumara(x = xseq, a[i], b[i], c[i]) #tolerance values
+}
+
+
+#looks good
+plot(curveDat[1,,i],curveDat[2,,i], type="n", xlim=range(curveDat[1,,]), ylim=range(curveDat[2,,]), xlab="Index variable", ylab="performance")
+for(i in 1:nSpp){
+  vals <- runif(3)
+  coli <- rgb(red = vals[1], green = vals[2], blue = vals[3])
+  lines(curveDat[1,,i],curveDat[2,,i], col=coli, lwd=3)
+}
+
+```
+
+
+```{r, message=FALSE, fig.cap="The Lasthenia tree (left), and randomly assigned curves (right). The red line shows the estimated ancestral curve. I need to read more, but as far as I can tell, this must be a reconstruction for the most recent common ancestor. Each curve must be reconstructed over a x variable range."}
+lasthSub <- subtrees(lasth)
+
+#for (z in 1:length(lasthSub)){
+for (z in 1){
+  
+  cSubTree <- lasthSub[[z]]
+  cTaxa <- lasth$tip.label %in% cSubTree$tip.label 
+  
+  cCurveData <- curveDat[2,,cTaxa]
+  Y <- t(cCurveData)
+  rownames(Y) <- cSubTree$tip.label
+  anc_Y <- fast_anc_hand(xseq, Y, cSubTree, T, T)
+  
+  par(mfrow=c(1,2))
+  
+  
+  plot(cSubTree)
+  plot(xseq,cCurveData[,z], type="n", ylim=range(cCurveData[,]), xlab="Index variable", ylab="performance")
+  for(i in 1:ncol(cCurveData)){
+    lines(xseq,cCurveData[,i], lwd=2)
+  }
+  lines(xseq, anc_Y, lwd=4, col="red")
+  
+  par(mfrow=c(1,1))
+}
+
+
+physignal(Y, cSubTree)
+dim(cCurveData)
+plot(lasth)
+```
+
+
+
+```{r}
+nspp <- nrow(unique(emery[,c(2,7)]))
+xseq_comm <- seq(1,5, length.out=500)
+
+sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
+
+curve_k <- rep(NA, ndraws)
+for(i in 1:ndraws){
+  sppMat <- matrix(NA, nrow=nspp, ncol =length(xseq_comm))
+  for(j in 1:nspp){
+    sppMat[j,] <- scale.kumara(
+          xs = xseq_comm,
+          a = posts$a[i,j], b = posts$b[i,j], 
+          c = posts$c[i,j], #/sppMaxVal[j], 
+          d = posts$d[i,j], e1 = posts$e1[i,j],
+          b0 = posts$beta_0[i], 
+          b1 = posts$beta_1[i])
+  }
+  rownames(sppMat) <- unique(emery[,2])
+  sppMat_sub <- sppMat[rownames(sppMat) %in% lasth$tip.label, ]
+  multk <- physignal(A = sppMat_sub, phy = lasth, iter = 1)$phy.signal
+  #multk <- multiPhylosignal(sppMat_sub, lasth)$K #from picante
+  curve_k[i] <- multk
+}
+
+hist(curve_k, breaks=100)
+
+fitContinuousMCMC(phy = lasth, d = maxima_means2, model = "SSP")
+OUwie(phy = lasth, data = maxima_means2, model = "OU1")
+```
+
+
+applyize
+```{r}
+
+nspp <- nrow(unique(emery[,c(2,7)]))
+xseq_comm <- seq(1,5, length.out=500)
+
+curve_k_Normal <- rep(NA, ndraws)
+for(i in 1:ndraws){
+  sppMat <- matrix(NA, nrow=nspp, ncol =length(xseq_comm))
+  for(j in 1:nspp){
+    sppMat[j,] <- stretch.kumara2(
+          xs = xseq_comm,
+          a = posts_Normal$a[i,j], b = posts_Normal$b[i,j], 
+          c = posts_Normal$c[i,j], #/sppMaxVal[j], 
+          d = posts_Normal$d[i,j], e1 = posts_Normal$e1[i,j]
+          )
+  }
+  
+  rownames(sppMat) <- unique(emery[,2])
+  sppMat_sub <- sppMat[rownames(sppMat) %in% lasth$tip.label, ]
+  multk <- physignal(A = sppMat_sub, phy = lasth, iter = 1)$phy.signal
+  #multk <- multiPhylosignal(sppMat_sub, lasth)$K #from picante
+  curve_k_Normal[i] <- multk
+}
+
+hist(curve_k_Normal, breaks=100)
+mean(curve_k_Normal)
+mean(curve_k)
+
+data(tworegime)
+trait[1:5,]
+
+#fitContinuousMCMC(phy = lasth, d = maxima_means2, model = "SSP")
+OUwie(phy = lasth, data = maxima_means2, model = "OU1")
+maxima_means2
+```
+
+OUwie
+```{r}
+
+lasth <- read.tree("ASR/LastheniaBayesian.tre")
+lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
+lasth$node.label <- round(as.numeric(lasth$node.label), 2)
+
+lasth_tips <- unlist(strsplit(lasth$tip.label, split = "L."))
+lasth_tips <- unlist(strsplit(lasth_tips , split = "'"))
+lasth_tips <- lasth_tips[lasth_tips != ""]
+lasth$tip.label <- lasth_tips
+
+holoAdd <- which(lasth$tip.label =="sect.Hologymne")
+newtips <- c("coulteri", "glabrata", "ferrisiae", "chrysantha")
+
+addbr <- 0.0001
+addtree <- rtree(n = length(newtips), rooted = T, 
+                 tip.label = newtips, 
+                 br = rtruncnorm(n = length(newtips), a = addbr, mean = addbr, sd = 0.0001)
+                 )
+
+lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
+lasth <- drop.tip(phy = lasth, tip = c("kunthii"))
+lasth <- chronopl(lasth, lambda = 1)
+
+Genus_species <- lasth$tip.label
+Reg <- c("terrestrial", "terrestrial",
+         "terrestrial", "terrestrial", "terrestrial", 
+         "terrestrial", "terrestrial", "vernal", 
+         "vernal", "vernal", "vernal",
+         "aqua_terr", "terrestrial", "aqua_terr",
+         "terrestrial", "aqua_terr", "vernal", 
+         "vernal", "vernal", "vernal")
+
+#asr
+state_reg <- Reg
+names(state_reg) <- as.character(Genus_species)
+regFit <- rerootingMethod(lasth, state_reg, model = "ER")
+
+colz <- setNames(c("red", "green", "blue"),
+                 colnames(regFit$marginal.anc))
+
+plot.phylo(lasth, label.offset = 0.04, edge.width = 3)
+
+!!!!!
+nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
+!!!!!
+nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
+
+matchset <- match(lasth$tip.label, Genus_species)
+
+tiplabels(pch=22, adj = 0.52, 
+          bg=colz[Reg[matchset]])
+
+legend("bottomleft",  colnames(regFit$marginal.anc), 
+       col = colz, pch=19)
+
+#regFit <- make.simmap(lasth, state_reg, model = "ER")
+#plotSimmap(regFit, colors = colz)
+
+states <- colnames(regFit$marginal.anc)
+
+#internal <- lasth$edge[lasth$edge[,2] >= length(lasth$tip.label),]
+#intNames <- paste(internal[,1], internal[,2], sep=",")
+#intNames <- internal[,2]
+
+#regFitNodes <- regFit$marginal.anc[row.names(regFit$marginal.anc) %in% intNames,]
+
+states[apply(regFit$marginal.anc, 1, which.max)]
+lasth$node.label <- states[apply(regFit$marginal.anc, 1,
+                                 which.max)]
+
+#drop taxa and trait states without experimental data
+Reg <- Reg[lasth$tip.label %in% unique(emery$Species)]
+Genus_species <- Genus_species[lasth$tip.label %in% unique(emery$Species)]
+drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
+lasth <- drop.tip(phy = lasth, tip = drop, trim.internal = T)
+lasth <- chronopl(lasth, lambda = 1)
+
+#OUwie data frame = taxa, regime, trait value
+ouwie_draws <- function(df, draws, mod){
+  draws <- lapply(X = as.list(1:draws), FUN = function(x){
+    X <- matrix(df[x,])
+    #X <- apply(maximadf, 2, mean)
+    ouwieDat <- data.frame(Genus_species=Genus_species, 
+                           Reg=Reg, X=unlist(X))
+    ouwieOUMVA <- OUwie(lasth, data = ouwieDat, 
+                        model = mod, root.station = T)
+    #message(x)
+  })
+  return(draws)
+}
+
+plot_ouwie_draws <- function(ouwie_draw_list){
+  
+  credz <- sapply(as.list(1:3), function(y){
+    quantile(sapply(ouwie_draw_list,
+                    function(x) x[["theta"]][[y]]),c(0.025, 0.975))
+  }
+  )
+  
+  denz <- lapply(as.list(1:3), function(y){
+    density(sapply(ouwie_draw_list, function(x) x[["theta"]][[y,1]]))
+    })
+  
+  xrng <- range(sapply(denz, function(z) z$x))
+  yrng <- range(sapply(denz, function(z) z$y))
+  
+  plot(NA, NA, xlim=xrng, ylim=yrng, xlab="", ylab="")
+  
+  lapply(denz, function(z) lines(z$x, z$y))
+  
+  segments(x0 = credz[1,], y0 = yrng[2]*c(0.2, 0.22, 0.23), 
+           x1 = credz[2,], y1 = yrng[2]*c(0.2, 0.22, 0.23), col=colz)
+}
+
+compare_ouwie_draws <- function(ouwie_draw_list){
+  
+  aq_terr_terr <- mean(sapply(ouwie_draw_list,
+                              function(x)x[["theta"]][[1,1]]) 
+                       >
+                         sapply(ouwie_draw_list,
+                                function(x)x[["theta"]][[2,1]]))
+  
+  aq_terr_vern <- mean(sapply(ouwie_draw_list,
+                              function(x)x[["theta"]][[1,1]]) 
+                       >
+                         sapply(ouwie_draw_list,
+                                function(x)x[["theta"]][[3,1]]))
+  
+  terr_vern <- mean(sapply(ouwie_draw_list, 
+                           function(x)x[["theta"]][[2,1]]) 
+                    >
+                      sapply(ouwie_draw_list,
+                             function(x)x[["theta"]][[3,1]]))
+  
+  return(list(aq_terr_terr = aq_terr_terr, 
+              aq_terr_vern = aq_terr_vern, 
+              terr_vern = terr_vern))
+}
+
+
+ouwie_maxima <- ouwie_draws(df = maximadf, draws = 100, mod = "OUM")
+plot_ouwie_draws(ouwie_maxima)
+compare_ouwie_draws(ouwie_maxima)
+
+ouwie_c <- ouwie_draws(df = posts_Normal$c, draws = 100, mod = "OUM")
+plot_ouwie_draws(ouwie_c)
+compare_ouwie_draws(ouwie_c)
+
+ouwie_e1 <- ouwie_draws(df = posts_Normal$e1, draws = 100, mod = "OUM")
+plot_ouwie_draws(ouwie_e1)
+compaire_ouwie_draws(ouwie_e1)
+
+
+
+#ouwieBM <- OUwie(lasth, data = ouwieDat, model = "BM1",root.station = T)
+#ouwieOU1 <- OUwie(lasth, data = ouwieDat, model = "OU1",root.station = T)
+#ouwieOUM <- OUwie(lasth, data = ouwieDat, model = "OUM",root.station = T)
+#ouwieOUMV <- OUwie(lasth, data = ouwieDat, model = "OUMV",root.station = T)
+#ouwieOUMA <- OUwie(lasth, data = ouwieDat, model = "OUMA", root.station = T)
+
+library(qpcR)
+akaike.weights(c(ouwieBM$AIC, ouwieOU1$AIC, ouwieOUM$AIC, ouwieOUMV$AIC, ouwieOUMA$AIC, ouwieOUMVA$AIC))
+
+```
+
+
+
+
+
+
+
+Plot density of posteriors
+```{r}
+
+maxima_means <- apply(X = maximadf, MARGIN = 2, FUN = mean)
+maxima_means2 <- sort(maxima_means[names(maxima_means) %in%
+                                     lasth$tip.label],decreasing = T)
+
+mden <- apply(maximadf, 2, density)
+mden <- apply(posts$a, 2, density)
+
+ylimit <- max(sapply(mden, function(x) max(x$y)))
+xlimit <- range(sapply(mden, function(x) range(x$x)))
+par(mar=c(5,0,4,0))
+plot(NA,NA, 
+     xlim=xlimit, 
+     ylim=c(0,ylimit),
+     xlab="", ylab="", main="",
+     axes=F)
+
+sapply(mden, FUN = function(x) lines(x = x$x, y = x$y) )
+legend("topright", 
+       names(sort(maxima_draw_2, decreasing = T)), 
+       bty="n", cex = 1, text.font = 3)
+
+#dev.off()
+
+maxima_k <- phylosignal(x = maxima_means_2, phy = lasth)
+maxima_k
+```
+
+Function for plotting phenogram
+```{r}
+
+phenoCred <- function( trait_chain, tree, fig_name){
+  
+  #trait_chain <- posts$c
+  #tree <- lasth
+  
+  
+  colnames(trait_chain) <- unique(emery$Species)
+  
+  
+  trait_means <- apply(X = trait_chain, MARGIN = 2, FUN = mean)
+  
+  xmx <- 1.6
+  lmeans <- length(trait_means)
+  zz <- seq(1.1,xmx, length.out = lmeans)
+  
+  credz <- apply(X = trait_chain, 
+                 MARGIN = 2, 
+                 FUN = quantile, c(0.025, 0.975))
+  
+  credz2 <- credz[ ,colnames(credz) %in% tree$tip.label  ]
+    
+  mean_trait2 <- sort(trait_means[names(trait_means) %in% tree$tip.label],
+                       decreasing = T)
+  
+  credz_ordered <- credz2[,names(mean_trait2)]
+  
+  pdf(file = fig_name)
+  
+  ylimz <- range(credz_ordered)
+  plot(NA, NA, xlim=c(0,xmx), ylim=c(ylimz[1], ylimz[2]*1.1), 
+       axes=F, ylab=fig_name, xlab="")
+  mtext(text = "Time", side = 1, line = 3, at = 0.85/2)
+  test <- phenogram(tree = tree,
+            x = mean_trait2,
+            colors = "dodgerblue",
+            xlim=c(0,1.55), ylim=range(credz), ftype = "i",
+            add=T)
+  
+  colz <- as.color( x = 1:length(mean_trait2), alpha = 1)
+  
+  xset <- round(seq(0, 0.85, length.out=4), 2)
+  axis(side = 1, at = xset)
+  axis(2)
+  
+  for(i in 1:lmeans){
+    cNode <- which(tree$tip.label == names(mean_trait2)[i])
+    nodelabels(
+    text = substr(names(mean_trait2), start = 1, stop = 3)[i],
+    node = cNode,
+    adj = -0.2,
+    frame = "none",
+    col = colz[i])  
+    }
+  
+  #plot(NA, NA, xlim=c(0.75,1), ylim=c(2.2, 3.7))
+  sz <- 1000
+  for(i in sample(x = 1:ndraws, size = sz, replace = F)){
+    trait_draw <- apply(X = trait_chain, 
+                        MARGIN = 2, 
+                        function(x) x[[i]]
+                        )
+    
+    trait_draw_2 <- trait_draw[names(trait_draw) %in%
+                                   tree$tip.label]
+    
+    phenogram(tree = tree, trait_draw_2, add = T,
+              col=alpha(colour = "black", alpha = 0.01))
+  
+    phenogram(tree = tree, 
+              x = mean_trait2, 
+              colors = "dodgerblue",  
+              add = T)
+  }
+  
+  legend("topleft", 
+         names(mean_trait2), 
+         bty="n", cex = 1, text.font = 3, text.col = colz)
+  
+  arrows(x0 = zz,
+         y0 = credz_ordered[1,],
+         x1 = zz,
+         y1 = credz_ordered[2,],
+         length = 0.05, angle = 90, 
+         code = 3, col=colz, lwd=3)
+  
+  dev.off()
+}
+
+phenoCred(trait_chain = posts_Normal$a, tree = lasth, fig_name = "figures/parameterA")
+phenoCred(trait_chain = posts_Normal$b, tree = lasth, fig_name = "figures/parameterB")
+phenoCred(trait_chain = posts_Normal$c, tree = lasth, fig_name = "figures/parameterC")
+phenoCred(trait_chain = posts_Normal$d, tree = lasth, fig_name = "figures/parameterD")
+phenoCred(trait_chain = posts_Normal$e1, tree = lasth, fig_name = "figures/parameterE1")
+phenoCred(trait_chain = maximadf, tree = lasth, fig_name = "figures/maxima")
+```
+
+
+

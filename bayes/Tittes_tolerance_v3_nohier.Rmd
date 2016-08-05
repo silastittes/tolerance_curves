@@ -1,0 +1,127 @@
+---
+title: "tolerance curves"
+author: "Silas Tittes"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    fig_caption: yes
+---
+
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+
+#packages
+library(rmarkdown)
+library(knitr)
+library(formatR)
+library(xtable)
+library(dplyr)
+library(rstan)
+library(ggplot2)
+library(smoothmest)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+options(scipen=99) #avoid scientific notation when printing
+opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, message=FALSE, results='hide'))
+options(bitmapType="cairo")
+
+opar <- par()
+opar$cin <- NULL
+opar$cra <- NULL
+opar$csi <- NULL
+opar$cxy <- NULL
+opar$din <- NULL
+opar$page <- NULL
+```
+
+
+## Data prep
+```{r}
+setwd("~/Documents/Projects/toleranceCurves/bayes/")
+#source("tolerance_functions.R")
+
+emery <- read.csv("NEmeryData.csv", header=T)
+emery <- emery[is.na(emery$Inflor_biomass) == 0,]
+
+###DELETE THIS###
+#emery <- emery[emery$Inflor_biomass != 0,]
+
+emery$treat <- rep(NA, nrow(emery))
+
+#make new column with treatments quant instead of nominal
+for(i in 1:nrow(emery)){
+  if( emery$Treatment[i] == "F"){
+    emery$treat[i]  <- 5
+  } else if(emery$Treatment[i] == "MF"){
+    emery$treat[i]  <- 4
+  } else if(emery$Treatment[i] == "B"){
+    emery$treat[i]  <- 3
+  } else if (emery$Treatment[i] == "MD"){
+    emery$treat[i]  <- 2
+  } else if (emery$Treatment[i] == "D"){
+    emery$treat[i]  <- 1
+  } else {
+    emery$treat[i]  <- NA
+  }
+}
+
+#make another new column with species as integers instead of nominal for stan
+species <- unique(emery$Species)
+sppint <- 1:length(species)
+emery$sppint <- rep(NA, nrow(emery))
+for(i in 1:length(species)){
+  emery$sppint[emery$Species %in% species[i]]  <- sppint[i]
+}
+
+
+unique(emery$Species)
+
+#emery <- arrange(emery, sppint)
+#emery <- arrange(emery, treat)
+
+#by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == min(x)))
+#emery$Inflor_biomass[emery$Species == "minor"]
+#unique(names(biomass_max))
+```
+
+
+## The model
+```{r}
+dataList <- list(N = nrow(emery), 
+		 x = emery$treat, 
+		 y = emery$Inflor_biomass,
+		 numSpp = length(unique(emery$sppint)),
+		 sppint = emery$sppint
+		)
+```
+
+
+```{r}
+watch <- c("a", "b", "c","d", "e", "e1", "mu",
+           #"hyper_c","sigma_c",
+           #"hyper_d","sigma_d",
+           #"hyper_e","sigma_e",
+           "nu", "beta_0", "beta_1")
+stan.fit <- stan(file = "tolerance_zig_v3_nohier.stan",
+                     data = dataList,
+                 iter = 5000, chains = 4,
+                 pars = watch,
+                sample_file = "tolerance_zig_v3_nohier.samples",
+                diagnostic_file = "tolerance_zig_v3_nohier.diag"
+)
+```
+
+
+Normal model version
+```{r}
+watch <- c("a", "b", "c","d", "e", "e1")
+stan.fit <- stan(file = "tolerance_zig_vNormal_nohier.stan",
+                     data = dataList,
+                 iter = 5000, chains = 4,
+                 pars = watch,
+                sample_file = "tolerance_zig_vNormal_nohier.samples",
+                diagnostic_file = "tolerance_zig_vNormal_nohier.diag"
+)
+```
