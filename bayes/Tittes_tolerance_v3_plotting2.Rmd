@@ -285,7 +285,7 @@ predDF_Zero <- predDF[predDF$Inflor_biomass == 0,]
 plot(predDF_nZero$meanDraws, predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws,
      pch=as.integer(emery$Species))
 points(predDF_Zero$meanDraws, predDF_Zero$Inflor_biomass - predDF_Zero$meanDraws,
-     pch="z", cex=2)
+     pch="z", cex=1.5)
 abline(h=0)
 
 smth <- smooth.spline(predDF_nZero$meanDraws, 

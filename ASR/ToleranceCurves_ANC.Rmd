@@ -12,7 +12,7 @@ output:
 setwd("~/Documents/Projects/toleranceCurves/")
 #load all data
 source("~/Documents/Projects/toleranceCurves/bayes/tolerance_functions.R")
-source("functions.R")
+source("ASR/functions.R")
 ```
 
 Ancestral state reconstruction of tolerance curves. 
@@ -111,109 +111,67 @@ plot(lasth)
 ```
 
 
-
+Curve Signal
 ```{r}
 nspp <- nrow(unique(emery[,c(2,7)]))
-xseq_comm <- seq(1,5, length.out=500)
+xseq_comm <- seq(1,5, length.out=200)
 
 sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
+names(sppMaxVal) <- unique(emery$Species)
 
-curve_k <- rep(NA, ndraws)
-for(i in 1:ndraws){
-  sppMat <- matrix(NA, nrow=nspp, ncol =length(xseq_comm))
-  for(j in 1:nspp){
-    sppMat[j,] <- scale.kumara(
-          xs = xseq_comm,
-          a = posts$a[i,j], b = posts$b[i,j], 
-          c = posts$c[i,j], #/sppMaxVal[j], 
-          d = posts$d[i,j], e1 = posts$e1[i,j],
-          b0 = posts$beta_0[i], 
-          b1 = posts$beta_1[i])
-  }
-  rownames(sppMat) <- unique(emery[,2])
-  sppMat_sub <- sppMat[rownames(sppMat) %in% lasth$tip.label, ]
-  multk <- physignal(A = sppMat_sub, phy = lasth, iter = 1)$phy.signal
-  #multk <- multiPhylosignal(sppMat_sub, lasth)$K #from picante
-  curve_k[i] <- multk
-}
+draw_list <- as.list(1:(ndraws))
+sppint_list <- as.list(1:max(emery$sppint))
+curveK_draws <- sapply(draw_list, function(pr){
+                  spp_mat <- t(sapply(sppint_list, function(sp){
+                    scale.kumara(xs = xseq_comm,
+                                 a = posts$a[pr,sp],
+                                 b = posts$b[pr,sp],
+                                 c = posts$c[pr,sp],
+                                 d = posts$d[pr,sp],
+                                 e1 = posts$e1[pr,sp]
+                                 )
+                    })
+                  )
+                    rownames(spp_mat) <- unique(emery[,2])
+                    physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
+                  })
 
-hist(curve_k, breaks=100)
+curveK_draws_scaled <- sapply(draw_list, function(pr){
+                  spp_mat <- t(sapply(sppint_list, function(sp){
+                    scale.kumara(xs = xseq_comm,
+                                 a = posts$a[pr,sp],
+                                 b = posts$b[pr,sp],
+                                 c = posts$c[pr,sp]/sppMaxVal[sp], #alt
+                                 d = posts$d[pr,sp],
+                                 e1 = posts$e1[pr,sp]
+                                 )
+                    })
+                  )
+                    rownames(spp_mat) <- unique(emery[,2])
+                    physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
+                  })
 
-fitContinuousMCMC(phy = lasth, d = maxima_means2, model = "SSP")
-OUwie(phy = lasth, data = maxima_means2, model = "OU1")
+
+plot(density(curveK_draws))
+lines(density(curveK_draws_scaled))
+
 ```
 
-
-applyize
-```{r}
-
-nspp <- nrow(unique(emery[,c(2,7)]))
-xseq_comm <- seq(1,5, length.out=500)
-
-curve_k_Normal <- rep(NA, ndraws)
-for(i in 1:ndraws){
-  sppMat <- matrix(NA, nrow=nspp, ncol =length(xseq_comm))
-  for(j in 1:nspp){
-    sppMat[j,] <- stretch.kumara2(
-          xs = xseq_comm,
-          a = posts$a[i,j], b = posts$b[i,j], 
-          c = posts$c[i,j], #/sppMaxVal[j], 
-          d = posts$d[i,j], e1 = posts$e1[i,j]
-          )
-  }
-  
-  rownames(sppMat) <- unique(emery[,2])
-  sppMat_sub <- sppMat[rownames(sppMat) %in% lasth$tip.label, ]
-  multk <- physignal(A = sppMat_sub, phy = lasth, iter = 1)$phy.signal
-  #multk <- multiPhylosignal(sppMat_sub, lasth)$K #from picante
-  curve_k_Normal[i] <- multk
-}
-
-hist(curve_k_Normal, breaks=100)
-mean(curve_k_Normal)
-mean(curve_k)
-
-data(tworegime)
-trait[1:5,]
-
-#fitContinuousMCMC(phy = lasth, d = maxima_means2, model = "SSP")
-OUwie(phy = lasth, data = maxima_means2, model = "OU1")
-maxima_means2
-```
 
 OUwie
 ```{r}
 
-lasth <- read.tree("ASR/LastheniaBayesian.tre")
-lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
-lasth$node.label <- round(as.numeric(lasth$node.label), 2)
+#"terrestrial"
+#"vernal"
+#"aqua_terr"
 
-lasth_tips <- unlist(strsplit(lasth$tip.label, split = "L."))
-lasth_tips <- unlist(strsplit(lasth_tips , split = "'"))
-lasth_tips <- lasth_tips[lasth_tips != ""]
-lasth$tip.label <- lasth_tips
-
-holoAdd <- which(lasth$tip.label =="sect.Hologymne")
-newtips <- c("coulteri", "glabrata", "ferrisiae", "chrysantha")
-
-addbr <- 0.0001
-addtree <- rtree(n = length(newtips), rooted = T, 
-                 tip.label = newtips, 
-                 br = rtruncnorm(n = length(newtips), a = addbr, mean = addbr, sd = 0.0001)
-                 )
-
-lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
-lasth <- drop.tip(phy = lasth, tip = c("kunthii"))
-lasth <- chronopl(lasth, lambda = 1)
-
-Genus_species <- lasth$tip.label
-Reg <- c("terrestrial", "terrestrial",
-         "terrestrial", "terrestrial", "terrestrial", 
-         "terrestrial", "terrestrial", "vernal", 
+Genus_species <- as.character(unique(emery$Species))
+Reg <- c("terrestrial", "vernal", "vernal",
          "vernal", "vernal", "vernal",
+         "aqua_terr", "vernal", "vernal",
          "aqua_terr", "terrestrial", "aqua_terr",
-         "terrestrial", "aqua_terr", "vernal", 
-         "vernal", "vernal", "vernal")
+         "vernal", "terrestrial"
+         )
 
 #asr
 state_reg <- Reg
@@ -225,10 +183,6 @@ colz <- setNames(c("red", "green", "blue"),
 
 plot.phylo(lasth, label.offset = 0.04, edge.width = 3)
 
-!!!!!
-nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
-!!!!!
-  
 nodelabels(pie = regFit$marginal.anc, col=colz, cex=0.4)
 
 matchset <- match(lasth$tip.label, Genus_species)
@@ -250,16 +204,12 @@ states <- colnames(regFit$marginal.anc)
 
 #regFitNodes <- regFit$marginal.anc[row.names(regFit$marginal.anc) %in% intNames,]
 
-states[apply(regFit$marginal.anc, 1, which.max)]
 lasth$node.label <- states[apply(regFit$marginal.anc, 1,
                                  which.max)]
 
-#drop taxa and trait states without experimental data
-Reg <- Reg[lasth$tip.label %in% unique(emery$Species)]
-Genus_species <- Genus_species[lasth$tip.label %in% unique(emery$Species)]
-drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
-lasth <- drop.tip(phy = lasth, tip = drop, trim.internal = T)
-lasth <- chronopl(lasth, lambda = 1)
+
+
+### SPECIES ORDER IN PARAMETER MATRICES DOES NOT MATCH PHYLO ORDER
 
 #OUwie data frame = taxa, regime, trait value
 ouwie_draws <- function(df, draws, mod){
@@ -334,9 +284,11 @@ compare_ouwie_draws(ouwie_c)
 
 ouwie_e1 <- ouwie_draws(df = posts$e1, draws = 100, mod = "OUM")
 plot_ouwie_draws(ouwie_e1)
-compaire_ouwie_draws(ouwie_e1)
+compare_ouwie_draws(ouwie_e1)
 
-
+ouwie_d <- ouwie_draws(df = posts$d, draws = 100, mod = "OUM")
+plot_ouwie_draws(ouwie_d)
+compare_ouwie_draws(ouwie_d)
 
 #ouwieBM <- OUwie(lasth, data = ouwieDat, model = "BM1",root.station = T)
 #ouwieOU1 <- OUwie(lasth, data = ouwieDat, model = "OU1",root.station = T)

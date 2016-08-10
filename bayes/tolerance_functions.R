@@ -127,12 +127,10 @@ plot.kumara <- function(xs, a, b, c, d, e1){
   list(x, mod.fit)
 }
 
-scale.kumara <- function(xs, a, b, c, d, e1, b0, b1){
+scale.kumara <- function(xs, a, b, c, d, e1){
   x <- (xs - d)/e1
   mod.fit <- c*((a*b*x^(a-1) ) * (1-x^a)^(b-1))
-  probZero <- plogis(b0 + b1 * mod.fit)
-  return((1-probZero)*mod.fit)
-  #return(mod.fit)
+  return(mod.fit)
 }
 
 kumara_dydx <- function(x, a, b, c){
