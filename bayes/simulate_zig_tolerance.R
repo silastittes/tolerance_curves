@@ -42,11 +42,11 @@ simreps <- 1
 ydat <- matrix(NA, nrow = nobs, ncol = simreps)
 for (z in 1:simreps) {
   nu <- rgamma(1, 100, 100 / 50)
-  a <- rtruncnorm(n = nSpp, mean = 5, sd = 1, a = 2)
-  b <- rtruncnorm(n = nSpp, mean = 5, sd = 1, a = 2)
+  a <- rtruncnorm(n = nSpp, mean = 5, sd = 2, a = 2)
+  b <- rtruncnorm(n = nSpp, mean = 5, sd = 2, a = 2)
   c <- rtruncnorm(n = nSpp, mean = 1, sd = 2, a = 2)
-  d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 5, b = min(x_o))
-  e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 5, a = max(x_o))
+  d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 2, b = min(x_o))
+  e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 2, a = max(x_o))
   e1 <- e - d
   beta_0 <- rtruncnorm(1, mean = 0, sd = 1, a = -10)
   beta_1 <- rtruncnorm(1, mean = -2, sd = 0.1, b = 0)
@@ -88,6 +88,7 @@ for (z in 1:simreps) {
   ydat[,z] <- dimDat$y
 }
 
+range(ydat)
 
 fmu <- 0.1
 rgamma(n = 1, shape = nu, rate = nu / fmu)

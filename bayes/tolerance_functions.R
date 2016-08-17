@@ -1,5 +1,6 @@
 setwd("~/Documents/Projects/toleranceCurves/")
 
+
 ################
 ################
 ### packages ###
@@ -54,48 +55,47 @@ opar$cxy <- NULL
 opar$din <- NULL
 opar$page <- NULL
 
-
-
 ####################
 ####################
 #### TRAIT DATA ####
 ####################
 ####################
 
-
-emery <- read.csv("bayes/NEmeryData.csv", header=T)
-emery <- emery[is.na(emery$Inflor_biomass) == 0,]
-
-###DELETE THIS###
-#emery <- emery[emery$Inflor_biomass != 0,]
-
-emery$treat <- rep(NA, nrow(emery))
-
-#make new column with treatments quant instead of nominal
-for(i in 1:nrow(emery)){
-  if( emery$Treatment[i] == "F"){
-    emery$treat[i]  <- 5
-  } else if(emery$Treatment[i] == "MF"){
-    emery$treat[i]  <- 4
-  } else if(emery$Treatment[i] == "B"){
-    emery$treat[i]  <- 3
-  } else if (emery$Treatment[i] == "MD"){
-    emery$treat[i]  <- 2
-  } else if (emery$Treatment[i] == "D"){
-    emery$treat[i]  <- 1
-  } else {
-    emery$treat[i]  <- NA
+load_emery <- function(){
+  emery <- read.csv("bayes/NEmeryData.csv", header=T)
+  emery <- emery[is.na(emery$Inflor_biomass) == 0,]
+  
+  ###DELETE THIS###
+  #emery <- emery[emery$Inflor_biomass != 0,]
+  
+  emery$treat <- rep(NA, nrow(emery))
+  
+  #make new column with treatments quant instead of nominal
+  for(i in 1:nrow(emery)){
+    if( emery$Treatment[i] == "F"){
+      emery$treat[i]  <- 5
+    } else if(emery$Treatment[i] == "MF"){
+      emery$treat[i]  <- 4
+    } else if(emery$Treatment[i] == "B"){
+      emery$treat[i]  <- 3
+    } else if (emery$Treatment[i] == "MD"){
+      emery$treat[i]  <- 2
+    } else if (emery$Treatment[i] == "D"){
+      emery$treat[i]  <- 1
+    } else {
+      emery$treat[i]  <- NA
+    }
   }
+  
+  #make another new column with species as integers instead of nominal for stan
+  species <- unique(emery$Species)
+  sppint <- 1:length(species)
+  emery$sppint <- rep(NA, nrow(emery))
+  for(i in 1:length(species)){
+    emery$sppint[emery$Species %in% species[i]]  <- sppint[i]
+  }
+  return(emery)
 }
-
-#make another new column with species as integers instead of nominal for stan
-species <- unique(emery$Species)
-sppint <- 1:length(species)
-emery$sppint <- rep(NA, nrow(emery))
-for(i in 1:length(species)){
-  emery$sppint[emery$Species %in% species[i]]  <- sppint[i]
-}
-
 
 #emery <- arrange(emery, sppint)
 #emery <- arrange(emery, treat)
@@ -169,18 +169,13 @@ HDI <- function(values, percent=0.95){
 
 
 #load posterior draws of all 5 parameters plus the derived maxima parameter
-maximadf <- read.table(file = "bayes/maxima_draws.txt", header = T)
+load_maximadf <- function()read.table(file = "bayes/maxima_draws.txt", header = T)
 
-stan_samples <- list.files("bayes/")[grep ("tolerance_zig_v3_nohier.samples",
-                                              list.files("bayes/"))]
-
-stanDat <- rstan::read_stan_csv(paste0("bayes/",stan_samples))
-
-posts <- extract(stanDat)
-ndraws <- nrow(posts$lp__) #*0.1
-#summs <- rstan::summary(stanMod)$summary
-posts <- extract(stanDat)
-summs <- summary(stanDat)$summary
+load_stanDat <- function(){
+  stan_samples <- list.files("bayes/")[grep ("tolerance_zig_v3_nohier.samples",
+                                             list.files("bayes/"))]
+ rstan::read_stan_csv(paste0("bayes/",stan_samples))
+}
 
 #warnings()
 
@@ -204,39 +199,41 @@ summs <- summary(stanDat)$summary
 #########################################
 #Load Emery Tree
 #lasth1 <- read.tree("LastheniaBayesian.tre")
-lasth <- read.tree("ASR/LastheniaBayesian.tre")
-lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
-lasth$node.label <- round(as.numeric(lasth$node.label), 2)
-plot.phylo(lasth, show.node.label = T)
 
-lasth_tips <- unlist(strsplit(lasth$tip.label, split = "L."))
-lasth_tips <- unlist(strsplit(lasth_tips , split = "'"))
-lasth_tips <- lasth_tips[lasth_tips != ""]
-lasth$tip.label <- lasth_tips
+load_lasth <- function(){
+  lasth <- read.tree("ASR/LastheniaBayesian.tre")
+  lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
+  lasth$node.label <- round(as.numeric(lasth$node.label), 2)
+  #plot.phylo(lasth, show.node.label = T)
+  
+  lasth_tips <- unlist(strsplit(lasth$tip.label, split = "L."))
+  lasth_tips <- unlist(strsplit(lasth_tips , split = "'"))
+  lasth_tips <- lasth_tips[lasth_tips != ""]
+  lasth$tip.label <- lasth_tips
+  
+  holoAdd <- which(lasth$tip.label =="sect.Hologymne")
+  newtips <- c("coulteri", "glabrata", "ferrisiae", "chrysantha")
+  
+  addbr <- 0.0001
+  addtree <- rtree(n = length(newtips), rooted = T, 
+                   tip.label = newtips, 
+                   br = rtruncnorm(n = length(newtips), a = addbr, mean = addbr, sd = 0.0001)
+                   )
+  
+  lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
+  
+  #add polytomies
+  
+  #drop
+  drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
+  lasth <- drop.tip(phy = lasth, tip = drop)
+  lasth <- chronopl(lasth, lambda = 1)
+  return(lasth)
+}
 
-holoAdd <- which(lasth$tip.label =="sect.Hologymne")
-newtips <- c("coulteri", "glabrata", "ferrisiae", "chrysantha")
-
-addbr <- 0.0001
-addtree <- rtree(n = length(newtips), rooted = T, 
-                 tip.label = newtips, 
-                 br = rtruncnorm(n = length(newtips), a = addbr, mean = addbr, sd = 0.0001)
-                 )
-
-lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
 
 
-#add polytomies
 
-#drop
-drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
-lasth <- drop.tip(phy = lasth, tip = drop)
-lasth <- chronopl(lasth, lambda = 1)
 
-#######################
-#######################
-##### MAXIMA DATA #####
-#######################
-#######################
 
-maximadf <- read.table(file = "bayes/maxima_draws.txt", header = T)
+

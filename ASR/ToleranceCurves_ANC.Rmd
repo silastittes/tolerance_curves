@@ -11,7 +11,7 @@ output:
 ```{r, message=FALSE}
 setwd("~/Documents/Projects/toleranceCurves/")
 #load all data
-source("~/Documents/Projects/toleranceCurves/bayes/tolerance_functions.R")
+source("bayes/load_data.R")
 source("ASR/functions.R")
 ```
 

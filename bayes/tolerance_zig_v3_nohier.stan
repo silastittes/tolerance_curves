@@ -69,9 +69,9 @@ model {
   
   a ~ normal(2, 2);
 
-  b ~ normal(2, 2);
+  b ~ normal(3, 2);
   
-  c ~ normal(2, 2);
+  c ~ normal(2, 10);
   
   d ~ normal(minx, 2);
   

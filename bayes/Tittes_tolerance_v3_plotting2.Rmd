@@ -38,8 +38,8 @@ opar$page <- NULL
 
 ## Data prep
 ```{r}
-setwd("~/Documents/Projects/toleranceCurves/bayes/")
-source("tolerance_functions.R")
+setwd("~/Documents/Projects/toleranceCurves/")
+source("bayes/load_data.R")
 
 by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == max(x)))
 by(data = emery$treat, INDICES = emery$Species, FUN = max)
@@ -65,8 +65,8 @@ priorDens <- list(a = NULL, b = NULL, c = NULL,
 
 nn <- 10000
 priorDens$a <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 1))
-priorDens$b <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 1))
-priorDens$c <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 0))
+priorDens$b <- density(rtruncnorm(nn, mean = 3, sd = 2, a = 1))
+priorDens$c <- density(rtruncnorm(nn, mean = 2, sd = 10, a = 0))
 priorDens$d <- density(rtruncnorm(nn, mean = min(emery$treat), 
                                   sd = 2, b = min(emery$treat)))
 priorDens$e1 <- density(rtruncnorm(nn, mean = max(emery$treat), 
@@ -116,8 +116,6 @@ hist(corrCE)
 mean(corrCE > 0)
 mean(corrCE)
 meanz <- summs[,1]
-plot(meanz[grep(pattern = "e1", names(meanz))], meanz[grep(pattern = "^c", names(meanz))])
-cor(meanz[grep(pattern = "e1", names(meanz))], meanz[grep(pattern = "^c", names(meanz))])
 ```
 
 
@@ -178,7 +176,8 @@ yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
 spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <=
 length(lasth$tip.label)]])
 
-pdf("~/Documents/Projects/toleranceCurves/figures/tree_tolerance.pdf")
+
+pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
 #pdf("~/Documents/Projects/toleranceCurves/figures/tree_tolerance_scaled.pdf") #alt
 
 

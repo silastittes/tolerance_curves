@@ -9,6 +9,7 @@
 # To perform alignment across species, generalized time warping may be performed
 # using the current GTW MATLAB implementation: http://www.f-zhou.com/ta_code.html
 
+require(scales)
 require(GPfit)
 require(dtw)
 #setwd("")
