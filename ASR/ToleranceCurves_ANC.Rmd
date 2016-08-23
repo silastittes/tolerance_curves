@@ -17,11 +17,10 @@ source("ASR/functions.R")
 
 Ancestral state reconstruction of tolerance curves. 
 
+IGNORE FIRST TWO BLOCKS
+
 First, lets simulate some data from the stretched kumarswamy function.
 ```{r, fig.cap="Simulated tolerance curves. The e and d parametes are included, which allows for shifts in the index variable range.", message=FALSE}
-stretch.kumara <- function(x, a, b, c){
-  return(c*((a*b*x^(a-1) ) * (1-x^a)^(b-1)))
-}
 
 #sketchy upper half normal 
 rhnorm <- function(n, mu, sigma, half){
@@ -274,21 +273,41 @@ compare_ouwie_draws <- function(ouwie_draw_list){
 }
 
 
-ouwie_maxima <- ouwie_draws(df = maximadf, draws = 100, mod = "OUM")
-plot_ouwie_draws(ouwie_maxima)
-compare_ouwie_draws(ouwie_maxima)
+ouwie_maxima_ou1 <- ouwie_draws(df = maximadf, draws = 100, mod = "OU1")
+ouwie_maxima_oum <- ouwie_draws(df = maximadf, draws = 100, mod = "OUM")
 
-ouwie_c <- ouwie_draws(df = posts$c, draws = 100, mod = "OUM")
-plot_ouwie_draws(ouwie_c)
-compare_ouwie_draws(ouwie_c)
+mean(sapply(ouwie_maxima_ou1, function(x) x$AIC) > 
+       sapply(ouwie_maxima_oum, function(x) x$AIC))
 
-ouwie_e1 <- ouwie_draws(df = posts$e1, draws = 100, mod = "OUM")
-plot_ouwie_draws(ouwie_e1)
-compare_ouwie_draws(ouwie_e1)
+plot_ouwie_draws(ouwie_maxima_oum)
+compare_ouwie_draws(ouwie_maxima_oum)
 
-ouwie_d <- ouwie_draws(df = posts$d, draws = 100, mod = "OUM")
-plot_ouwie_draws(ouwie_d)
-compare_ouwie_draws(ouwie_d)
+ouwie_c_ou1 <- ouwie_draws(df = posts$c, draws = 100, mod = "OU1")
+ouwie_c_oum <- ouwie_draws(df = posts$c, draws = 100, mod = "OUM")
+
+mean(sapply(ouwie_c_ou1, function(x) x$AIC) >
+       sapply(ouwie_c_oum, function(x) x$AIC))
+
+plot_ouwie_draws(ouwie_c_oum)
+compare_ouwie_draws(ouwie_c_oum)
+
+ouwie_e1_ou1 <- ouwie_draws(df = posts$e1, draws = 100, mod = "OU1")
+ouwie_e1_oum <- ouwie_draws(df = posts$e1, draws = 100, mod = "OUM")
+
+mean(sapply(ouwie_e1_ou1, function(x) x$AIC) >
+       sapply(ouwie_e1_oum, function(x) x$AIC))
+
+plot_ouwie_draws(ouwie_e1_oum)
+compare_ouwie_draws(ouwie_e1_oum)
+
+WWWusagexxouwie_d_ou1 <- ouwie_draws(df = posts$d, draws = 100, mod = "OU1")
+ouwie_d_oum <- ouwie_draws(df = posts$d, draws = 100, mod = "OUM")
+
+mean(sapply(ouwie_d_ou1, function(x) x$AIC) < 
+       sapply(ouwie_d_oum, function(x) x$AIC))
+
+plot_ouwie_draws(ouwie_d_oum)
+compare_ouwie_draws(ouwie_d_oum)
 
 #ouwieBM <- OUwie(lasth, data = ouwieDat, model = "BM1",root.station = T)
 #ouwieOU1 <- OUwie(lasth, data = ouwieDat, model = "OU1",root.station = T)

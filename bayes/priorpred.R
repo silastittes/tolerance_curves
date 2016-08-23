@@ -77,6 +77,7 @@ apply(ydat, 2,
       })
 
 
+quantile(emery$Inflor_biomass)
 quantile(ydat)
-#hist(ydat[,10])
-#hist(emery$Inflor_biomass)
+hist(ydat[,10])
+hist(emery$Inflor_biomass)

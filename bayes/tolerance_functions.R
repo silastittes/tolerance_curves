@@ -133,6 +133,12 @@ scale.kumara <- function(xs, a, b, c, d, e1){
   return(mod.fit)
 }
 
+unscale.kumara <- function(x, a, b, c, d, e1){
+  xs <- x*e1 + d
+  mod.fit <- c*((a*b*x^(a-1) ) * (1-x^a)^(b-1))
+  return(list(xs = xs, mod.fit=mod.fit))
+}
+
 kumara_dydx <- function(x, a, b, c){
   -a * b * c * x^(-2 + a) *
     (1 - x^a)^(-2 + b) *
