@@ -29,7 +29,6 @@ library(ape)
 library(picante)
 library(phytools)
 library(OUwie)
-library(bayou)
 library(geiger)
 
 #rstan

@@ -1,12 +1,15 @@
 #prior predictive checks
-
-library(rstan)
 library(truncnorm)
+library(gdata)
+
 
 #simulate data set for tolerance model
 setwd("~/Documents/Projects/toleranceCurves/bayes/")
 source("tolerance_functions.R")
 emery <- load_emery()
+setwd("~/Documents/Projects/toleranceCurves/bayes/")
+
+prior_data <- read.xls(xls = "EcoLettData_PriorPredChecks.xls")
 
 ## simulate parameters and data ----------------------------
 nSpp <- length(unique(emery$Species))
@@ -77,7 +80,7 @@ apply(ydat, 2,
       })
 
 
-quantile(emery$Inflor_biomass)
 quantile(ydat)
-hist(ydat[,10])
-hist(emery$Inflor_biomass)
+quantile(prior_data$Infl_totwt, na.rm = T )
+plot(density(ydat), lwd=2)
+lines(density(prior_data$Infl_totwt, na.rm = T), lty=2, lwd=2)
