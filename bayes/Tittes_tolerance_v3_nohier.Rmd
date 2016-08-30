@@ -60,7 +60,7 @@ dataList <- list(N = nrow(emery),
 Gamma scaled version -- best
 ```{r}
 watch <- c("a", "b", "c","d", "e", "e1", "mu",
-           "nu", "beta_0", "beta_1")
+           "nu", "beta_0", "beta_1", "var_c")
 stan.fit <- stan(file = "tolerance_zig_v3_nohier.stan",
                      data = dataList,
                  iter = 5000, chains = 4,
@@ -72,7 +72,7 @@ stan.fit <- stan(file = "tolerance_zig_v3_nohier.stan",
 
 
 Normal model version -- meh
-```{r}
+```{r, eval=FALSE}
 watch <- c("a", "b", "c","d", "e", "e1")
 stan.fit <- stan(file = "tolerance_zig_vNormal_nohier.stan",
                      data = dataList,

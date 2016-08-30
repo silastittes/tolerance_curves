@@ -1,7 +1,7 @@
 #prior predictive checks
 library(truncnorm)
 library(gdata)
-
+library(dplyr)
 
 #simulate data set for tolerance model
 setwd("~/Documents/Projects/toleranceCurves/bayes/")
@@ -9,7 +9,9 @@ source("tolerance_functions.R")
 emery <- load_emery()
 setwd("~/Documents/Projects/toleranceCurves/bayes/")
 
-prior_data <- read.xls(xls = "EcoLettData_PriorPredChecks.xls")
+prior_data <- read.xls(xls = "EcoLettData_PriorPredChecks.xls") %>%
+  filter(Treatment == "NR")
+
 
 ## simulate parameters and data ----------------------------
 nSpp <- length(unique(emery$Species))
@@ -18,14 +20,14 @@ nobs <- nSpp * ntreat * 7
 x_o <- seq(1, ntreat, length.out = ntreat) #data scale
 nSppTreat <- nobs/nSpp/ntreat
 
-simreps <- 20
+simreps <- 50
 ydat <- matrix(NA, nrow = nobs, ncol = simreps)
 for (z in 1:simreps){
   
-  nu <- rgamma(1, 10, 0.2)
-  a <- rtruncnorm(n = nSpp, mean = 2, sd = 2, a = 1)
-  b <- rtruncnorm(n = nSpp, mean = 3, sd = 2, a = 1)
-  c <- rtruncnorm(n = nSpp, mean = 2, sd = 10, a = 0)
+  nu <- rgamma(1, 20, 0.2)
+  a <- rtruncnorm(n = nSpp, mean = 4, sd = 1, a = 1)
+  b <- rtruncnorm(n = nSpp, mean = 3, sd = 1, a = 1)
+  c <- rtruncnorm(n = nSpp, mean = 3, sd = 20, a = 0)
   d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 2, b = min(x_o))
   e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 2, a = max(x_o))
   e1 <- e - d
@@ -76,11 +78,21 @@ plot(NA,NA, xlim=range(dimDat$treat), ylim = range(ydat),
 apply(ydat, 2, 
       function(x){
         points(jitter(dimDat$treat), x,
-             col = as.color(dimDat$spp, alpha = 1), pch = 19, cex=0.2)
+             #col = as.color(dimDat$spp, alpha = 1), 
+             pch = 19, cex=0.2)
       })
 
 
-quantile(ydat)
-quantile(prior_data$Infl_totwt, na.rm = T )
 plot(density(ydat), lwd=2)
 lines(density(prior_data$Infl_totwt, na.rm = T), lty=2, lwd=2)
+
+qseq <- seq(0, 1, length.out = 100)
+qsim <- quantile(ydat, qseq)
+qprior <- quantile(prior_data$Infl_totwt, qseq, na.rm = T)
+plot( qsim, qprior, xlim=range(qprior), ylim=range(qprior))
+plot( qsim, qprior)
+abline(0,1, lty=2)
+
+quantile(ydat)
+quantile(prior_data$Infl_totwt, na.rm = T)
+

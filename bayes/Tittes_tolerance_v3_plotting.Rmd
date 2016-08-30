@@ -40,7 +40,8 @@ opar$page <- NULL
 ```{r}
 setwd("~/Documents/Projects/toleranceCurves/bayes/")
 source("tolerance_functions.R")
-
+setwd("~/Documents/Projects/toleranceCurves/bayes/")
+source("load_data.R")
 by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == max(x)))
 by(data = emery$treat, INDICES = emery$Species, FUN = max)
 emery$Inflor_biomass[emery$Species == "minor"]
@@ -66,22 +67,27 @@ priorDens <- list(a = NULL, b = NULL, c = NULL,
                   beta_0 = NULL, beta_1 = NULL, lp__ = NULL)
 
 nn <- 10000
-priorDens$a <- density(rnorm(nn, 2, 2))
-priorDens$b <- density(rnorm(nn, 2, 2))
-priorDens$c <- density(rnorm(nn, 2, 2))
+priorDens$a <- density(rtruncnorm( n = nn, mean = 2, sd = 1, a = 1))
+priorDens$b <- density(rtruncnorm( n = nn, mean = 3, sd = 1, a = 1))
+priorDens$c <- density(rtruncnorm( n = nn, mean = 3, sd = 30, a = 0))
 priorDens$d <- density(rtruncnorm(nn, mean = min(emery$treat), 
                                   sd = 2, b = min(emery$treat)))
 priorDens$e1 <- density(rtruncnorm(nn, mean = max(emery$treat), 
                                   sd = 2, a = max(emery$treat)))
-priorDens$nu <- density(rgamma(nn, shape = 10, scale = 0.2))
+priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
 priorDens$beta_0 <- density(rnorm(nn, 0, 2))
 priorDens$beta_1 <- density(rnorm(nn, 0, 2))
+
+#!!!!!!
+#priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
+#plot(priorDens$nu$x, priorDens$nu$y)
+#!!!!!!
 
 par(mfrow=c(5,2))
 par(mar=c(3,3,1,1))
 namez <- c("a", "b", "c", "d", "e1", "nu", "beta_0", "beta_1", "lp__")
 for(i in namez){
-  cPost <- posts_Normal[[i]]
+  cPost <- posts[[i]]
   if(length(dim(cPost)) < 2){
     plot(density(cPost), xlab="", ylab="", main="")
     polygon(priorDens[[i]], col="red")

@@ -35,6 +35,7 @@ parameters {
   real <lower = 1> a[numSpp];
   real <lower = 1> b[numSpp];
   real <lower = 0> c[numSpp];
+  real <lower = 0> var_c;
 
   real <upper = minx> d[numSpp];
   real <lower = maxx> e[numSpp];
@@ -44,7 +45,7 @@ parameters {
   
   # zero-inflation coefficients
   real beta_0[numSpp];
-  real beta_1[numSpp];
+  real <upper = 0> beta_1[numSpp];
 }
 
 transformed parameters {
@@ -67,17 +68,18 @@ transformed parameters {
 
 model {
   
-  a ~ normal(2, 2);
+  a ~ normal(4, 1);
 
-  b ~ normal(3, 2);
+  b ~ normal(3, 1);
   
-  c ~ normal(2, 10);
+  c ~ normal(3, var_c);
+  var_c ~ cauchy(0, 1);
   
   d ~ normal(minx, 2);
   
   e ~ normal(maxx, 2);
 
-  nu ~ gamma(10, 0.2);
+  nu ~ gamma(20, 0.2);
   beta_0 ~ normal(0, 2);
   beta_1 ~ normal(0, 2);
 

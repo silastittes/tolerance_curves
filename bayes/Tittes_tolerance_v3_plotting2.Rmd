@@ -40,6 +40,7 @@ opar$page <- NULL
 ```{r}
 setwd("~/Documents/Projects/toleranceCurves/")
 source("bayes/load_data.R")
+setwd("~/Documents/Projects/toleranceCurves/")
 
 by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == max(x)))
 by(data = emery$treat, INDICES = emery$Species, FUN = max)
@@ -61,35 +62,41 @@ library(truncnorm)
 library(dplyr)
 
 priorDens <- list(a = NULL, b = NULL, c = NULL, 
-                  d = NULL, e1 = NULL)
+                  d = NULL, e1 = NULL, nu = NULL, 
+                  beta_0 = NULL, beta_1 = NULL, lp__ = NULL)
 
 nn <- 10000
-priorDens$a <- density(rtruncnorm(nn, mean = 2, sd = 2, a = 1))
-priorDens$b <- density(rtruncnorm(nn, mean = 3, sd = 2, a = 1))
-priorDens$c <- density(rtruncnorm(nn, mean = 2, sd = 10, a = 0))
+priorDens$a <- density(rtruncnorm( n = nn, mean = 2, sd = 1, a = 1))
+priorDens$b <- density(rtruncnorm( n = nn, mean = 3, sd = 1, a = 1))
+priorDens$c <- density(rtruncnorm( n = nn, mean = 3, sd = 30, a = 0))
 priorDens$d <- density(rtruncnorm(nn, mean = min(emery$treat), 
                                   sd = 2, b = min(emery$treat)))
 priorDens$e1 <- density(rtruncnorm(nn, mean = max(emery$treat), 
                                   sd = 2, a = max(emery$treat)))
-priorDens$nu <- density(rgamma(nn, shape = 10, scale = 0.2))
+priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
 priorDens$beta_0 <- density(rnorm(nn, 0, 2))
 priorDens$beta_1 <- density(rnorm(nn, 0, 2))
 
-par(mfrow=c(3,2))
+#!!!!!!
+#priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
+#plot(priorDens$nu$x, priorDens$nu$y)
+#!!!!!!
+
+par(mfrow=c(5,2))
 par(mar=c(3,3,1,1))
-namez <- c("a", "b", "c", "d", "e1")
+namez <- c("a", "b", "c", "d", "e1", "nu", "beta_0", "beta_1", "lp__")
 for(i in namez){
   cPost <- posts[[i]]
   if(length(dim(cPost)) < 2){
     plot(density(cPost), xlab="", ylab="", main="")
-    polygon(priorDens[[i]], col="grey60", border = F)
+    polygon(priorDens[[i]], col="red")
     mtext(text = i, side = 3)
   } else {
     tden <- apply(cPost, 2, density)
     ylimit <- max(sapply(tden, function(x) max(x$y)))
     xlimit <- range(sapply(tden, function(x) range(x$x)))
     plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
-    polygon(priorDens[[i]], col="grey60", border = F)
+    polygon(priorDens[[i]], col="red")
     mtext(text = i, side = 3)
     lapply(tden, lines)
   }
@@ -119,7 +126,7 @@ meanz <- summs[,1]
 ```
 
 
-normal plots
+curve plots
 ```{r}
 
 sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
@@ -127,15 +134,15 @@ names(sppMaxVal) <- unique(emery$Species)
 
 #generate data
 xseq <- seq(0,1, length.out=200)
-draw_list <- as.list(1:(ndraws*0.15))
+draw_list <- as.list(1:(ndraws*0.05))
 sppint_list <- as.list(1:max(emery$sppint))
 post_plot_draws <- lapply(sppint_list, function(sp)
             lapply(draw_list, function(pr)
                 plot.kumara(xs = xseq,
                             a = posts$a[pr,sp],
                             b = posts$b[pr,sp],
-                            c = posts$c[pr,sp],
-                            #c = posts$c[pr,sp]/sppMaxVal[sp], #alt
+                            #c = posts$c[pr,sp],
+                            c = posts$c[pr,sp]/sppMaxVal[sp], #alt
                             d = posts$d[pr,sp],
                             e1 = posts$e1[pr,sp]
                             )
@@ -155,8 +162,8 @@ mean_plot_draws <- lapply(sppint_list, function(sp)
                 plot.kumara(xs = xseq,
                             a = mean_paramz$a[sp],
                             b = mean_paramz$b[sp],
-                            c = mean_paramz$c[sp],
-                            #c = mean_paramz$c[sp]/sppMaxVal[sp], #alt
+                            #c = mean_paramz$c[sp],
+                            c = mean_paramz$c[sp]/sppMaxVal[sp], #alt
                             d = mean_paramz$d[sp],
                             e1 = mean_paramz$e1[sp]
                             )
@@ -164,9 +171,9 @@ mean_plot_draws <- lapply(sppint_list, function(sp)
 
 names(mean_plot_draws) <- unique(emery$Species)
 
-xr <- range(sapply(post_plot_draws, function(x) x[[1]][[1]]))
-#yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.4)
-yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
+xr <- range(sapply(post_plot_draws, function(x) x[[1]][[1]]))*1.2
+yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.4)
+#yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
 #yr[2] <- ifelse( yr[2] > max(emery$Inflor_biomass), yes = yr[2], max(emery$Inflor_biomass))
 
 #spp_list <- as.list(unique(as.character(emery$Species)))
@@ -176,9 +183,8 @@ yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
 spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <=
 length(lasth$tip.label)]])
 
-
-pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
-#pdf("~/Documents/Projects/toleranceCurves/figures/tree_tolerance_scaled.pdf") #alt
+#pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
+pdf("~/Documents/Projects/toleranceCurves/figures/tree_tolerance_scaled.pdf") #alt
 
 
 c1 <- rep(1, length(spp_list))
@@ -222,17 +228,18 @@ for(spp in spp_list){
     subEm <- emery[emery$Species == spp, ]
   
   #OPTION 1  
-    points( jitter(subEm$treat), subEm$Inflor_biomass, 
-           pch=19, col=alpha("grey70", 0.5))
+   # points( jitter(subEm$treat), subEm$Inflor_biomass, 
+    #       pch=19, col=alpha("grey70", 0.5))
     
   #OPTION 2  
-   #points(subEm$treat, subEm$Inflor_biomass/sppMaxVal[spp],
-   #      pch=19, col=alpha("grey70", 0.5)) #alt
+   points(subEm$treat, subEm$Inflor_biomass/sppMaxVal[spp],
+         pch=19, col=alpha("grey70", 0.5)) #alt
     
     #dev.off()
 }
+
 dev.off()
-   
+
 ```
 
 
