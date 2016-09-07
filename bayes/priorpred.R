@@ -4,12 +4,10 @@ library(gdata)
 library(dplyr)
 
 #simulate data set for tolerance model
-setwd("~/Documents/Projects/toleranceCurves/bayes/")
-source("tolerance_functions.R")
+source("bayes/tolerance_functions.R")
 emery <- load_emery()
-setwd("~/Documents/Projects/toleranceCurves/bayes/")
 
-prior_data <- read.xls(xls = "EcoLettData_PriorPredChecks.xls") %>%
+prior_data <- read.xls(xls = "bayes/EcoLettData_PriorPredChecks.xls") %>%
   filter(Treatment == "NR")
 
 
@@ -27,7 +25,12 @@ for (z in 1:simreps){
   nu <- rgamma(1, 20, 0.2)
   a <- rtruncnorm(n = nSpp, mean = 4, sd = 1, a = 1)
   b <- rtruncnorm(n = nSpp, mean = 3, sd = 1, a = 1)
-  c <- rtruncnorm(n = nSpp, mean = 3, sd = 20, a = 0)
+  
+  #hyper paramters for c
+  mean_c <- rtruncnorm(n = nSpp, mean = 0, sd = 10, a = 0)
+  var_c <- rtruncnorm(n = nSpp, mean = 0, sd = 10, a = 0)
+  
+  c <- rtruncnorm(n = nSpp, mean = mean_c, sd = var_c, a = 0)
   d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 2, b = min(x_o))
   e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 2, a = max(x_o))
   e1 <- e - d

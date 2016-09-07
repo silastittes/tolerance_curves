@@ -7,40 +7,10 @@ output:
     fig_caption: yes
 ---
 
-
-```{r, echo=FALSE, results='hide', message=FALSE}
-#packages
-library(rmarkdown)
-library(knitr)
-library(formatR)
-library(xtable)
-library(dplyr)
-library(rstan)
-library(ggplot2)
-library(smoothmest)
-library(parallel)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-
-options(scipen=99) #avoid scientific notation when printing
-opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, message=FALSE, results='hide'))
-options(bitmapType="cairo")
-
-opar <- par()
-opar$cin <- NULL
-opar$cra <- NULL
-opar$csi <- NULL
-opar$cxy <- NULL
-opar$din <- NULL
-opar$page <- NULL
-```
-
-
 ## Data prep
 ```{r}
-setwd("~/Documents/Projects/toleranceCurves/")
 source("bayes/load_data.R")
-setwd("~/Documents/Projects/toleranceCurves/")
+emery <- load_emery()
 
 by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == max(x)))
 by(data = emery$treat, INDICES = emery$Species, FUN = max)
@@ -61,6 +31,7 @@ rstan::traceplot(stanDat, par=c("e1"))
 library(truncnorm)
 library(dplyr)
 
+
 priorDens <- list(a = NULL, b = NULL, c = NULL, 
                   d = NULL, e1 = NULL, nu = NULL, 
                   beta_0 = NULL, beta_1 = NULL, lp__ = NULL)
@@ -68,7 +39,6 @@ priorDens <- list(a = NULL, b = NULL, c = NULL,
 nn <- 10000
 priorDens$a <- density(rtruncnorm( n = nn, mean = 2, sd = 1, a = 1))
 priorDens$b <- density(rtruncnorm( n = nn, mean = 3, sd = 1, a = 1))
-priorDens$c <- density(rtruncnorm( n = nn, mean = 3, sd = 30, a = 0))
 priorDens$d <- density(rtruncnorm(nn, mean = min(emery$treat), 
                                   sd = 2, b = min(emery$treat)))
 priorDens$e1 <- density(rtruncnorm(nn, mean = max(emery$treat), 
@@ -77,6 +47,17 @@ priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
 priorDens$beta_0 <- density(rnorm(nn, 0, 2))
 priorDens$beta_1 <- density(rnorm(nn, 0, 2))
 
+priorDens$c <- density(rtruncnorm( n = nn, mean = 0, sd = 10, a = 0))
+hyperDens_c <- density(posts$mean_c)
+
+tden <- apply(posts$c, 2, density)
+ylimit <- max(sapply(tden, function(x) max(x$y)))
+xlimit <- range(sapply(tden, function(x) range(x$x)))
+plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
+    polygon(priorDens$c, col="red")
+    polygon(hyperDens_c, col="blue")
+    mtext(text = "c", side = 3)
+    lapply(tden, lines)
 #!!!!!!
 #priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
 #plot(priorDens$nu$x, priorDens$nu$y)
@@ -84,9 +65,11 @@ priorDens$beta_1 <- density(rnorm(nn, 0, 2))
 
 par(mfrow=c(5,2))
 par(mar=c(3,3,1,1))
-namez <- c("a", "b", "c", "d", "e1", "nu", "beta_0", "beta_1", "lp__")
+namez <- c("a", "b", "c", "mean_c", "d", "e1", "nu", "beta_0", "beta_1", "lp__")
 for(i in namez){
   cPost <- posts[[i]]
+  if(cPost)
+  
   if(length(dim(cPost)) < 2){
     plot(density(cPost), xlab="", ylab="", main="")
     polygon(priorDens[[i]], col="red")
@@ -184,7 +167,7 @@ spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <=
 length(lasth$tip.label)]])
 
 #pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
-pdf("~/Documents/Projects/toleranceCurves/figures/tree_tolerance_scaled.pdf") #alt
+pdf("figures/tree_tolerance_scaled.pdf") #alt
 
 
 c1 <- rep(1, length(spp_list))
@@ -203,7 +186,7 @@ plot.phylo(lasth, show.tip.label = F, edge.width = 4,
 
 
 for(spp in spp_list){
-  #pdf( paste0("~/Documents/Projects/toleranceCurves/figures/", 
+  #pdf( paste0("figures/", 
               #spp, "_tolerance.pdf"))
   
   plot(NA,NA, xlim=xr, ylim=yr, axes=F, xlab="", ylab="")
@@ -283,8 +266,8 @@ meanDraws <- apply(X = posts$mu, 2, mean)
 
 predDF <- data.frame(meanDraws = meanDraws,
                      Inflor_biomass = emery$Inflor_biomass)
-predDF_nZero <- predDF[predDF$Inflor_biomass !=0,]
-predDF_Zero <- predDF[predDF$Inflor_biomass == 0,]
+predDF_nZero <- predDF[predDF$Inflor_biomass !=0, ]
+predDF_Zero <- predDF[predDF$Inflor_biomass == 0, ]
 
 #plot(emery$Inflor_biomass, meanDraws)
 #abline(0,1, lty=2, col="red")

@@ -1,5 +1,3 @@
-setwd("~/Documents/Projects/toleranceCurves/")
-
 
 ################
 ################

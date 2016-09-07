@@ -35,6 +35,7 @@ parameters {
   real <lower = 1> a[numSpp];
   real <lower = 1> b[numSpp];
   real <lower = 0> c[numSpp];
+  real <lower = 0> mean_c;
   real <lower = 0> var_c;
 
   real <upper = minx> d[numSpp];
@@ -72,8 +73,9 @@ model {
 
   b ~ normal(3, 1);
   
-  c ~ normal(3, var_c);
-  var_c ~ cauchy(0, 1);
+  c ~ normal(mean_c, var_c);
+  mean_c ~ normal(0, 10);
+  var_c ~ normal(0, 10);
   
   d ~ normal(minx, 2);
   
