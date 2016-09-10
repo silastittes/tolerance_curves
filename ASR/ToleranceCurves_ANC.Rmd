@@ -9,7 +9,6 @@ output:
 
 
 ```{r, message=FALSE}
-setwd("~/Documents/Projects/toleranceCurves/")
 #load all data
 source("bayes/load_data.R")
 source("ASR/functions.R")
@@ -118,11 +117,13 @@ xseq_comm <- seq(1,5, length.out=200)
 sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
 names(sppMaxVal) <- unique(emery$Species)
 
-draw_list <- as.list(1:(ndraws))
-sppint_list <- as.list(1:max(emery$sppint))
-curveK_draws <- sapply(draw_list, function(pr){
-                  spp_mat <- t(sapply(sppint_list, function(sp){
-                    scale.kumara(xs = xseq_comm,
+
+
+draw_list <- as.list(1:ndraws) #posterior draws as list
+sppint_list <- as.list(1:max(emery$sppint)) #species are columns
+curveK_draws <- sapply(draw_list, 
+                       function(pr){ spp_mat <- t(sapply(sppint_list, function(sp){
+                          scale.kumara(xs = xseq_comm,
                                  a = posts$a[pr,sp],
                                  b = posts$b[pr,sp],
                                  c = posts$c[pr,sp],
@@ -134,6 +135,8 @@ curveK_draws <- sapply(draw_list, function(pr){
                     rownames(spp_mat) <- unique(emery[,2])
                     physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
                   })
+
+
 
 curveK_draws_scaled <- sapply(draw_list, function(pr){
                   spp_mat <- t(sapply(sppint_list, function(sp){
@@ -150,10 +153,14 @@ curveK_draws_scaled <- sapply(draw_list, function(pr){
                     physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
                   })
 
-
-plot(density(curveK_draws))
-lines(density(curveK_draws_scaled))
-
+den_curves <- lapply(list(curveK_draws, curveK_draws_scaled), density)
+xrng <- range(sapply(den_curves, function(x) x$x))
+yrng <- range(lapply(den_curves, function(x) x$y))
+plot(NA, NA, ylim=yrng, xlim = xrng,
+     xlab = "K", ylab = "density")
+polygon(density(curveK_draws), col = alpha("green", 0.5))
+polygon(density(curveK_draws_scaled), col = alpha("blue", 0.5))
+legend("topright", c("unscaled","scaled"), pch = 21, pt.bg = c(alpha("green", 0.5),alpha("blue", 0.5)))
 ```
 
 
@@ -177,7 +184,7 @@ state_reg <- Reg
 names(state_reg) <- as.character(Genus_species)
 
 #number of stochastic maps of habitat
-mapsims <- 4
+mapsims <- 10
 #regFit <- rerootingMethod(lasth, state_reg, model = "ER")
 
 #generate maps
@@ -210,11 +217,15 @@ hab_sims <- lapply(simstates, function(x) x)
 #function to apply OUwie over posterior tolerance draws, and stochastic map draws
 #OUwie data frame = taxa, regime, trait value
 ouwie_draws <- function(draws, df, mod, tree, sims){
+  
+  #process across stochastic map sims
   mapdraw <- lapply(sims, function(y){
+    #combine true tips states to stochastic map anc states
     anc_states <- y[tree$edge[,2] >= length(tree$tip.label)]
     tree$node.label <- anc_states
     tip_states <- y[tree$edge[,2] <= length(tree$tip.label)]
     
+    #run posterior draws against each stochastic habitat reconstruction
     draws <- lapply(X = as.list(1:draws), FUN = function(x){
       X <- matrix(df[x,])
       #X <- apply(maximadf, 2, mean)
@@ -285,37 +296,28 @@ compare_ouwie_draws <- function(ouwie_draw_list){
 }
 
 
+ouwie_c_ou1 <- ouwie_draws(df = posts$c, draws = 10, 
+                                mod = "OU1", tree = lasth, 
+                                sims =  hab_sims)
 
-ouwie_maxima_ou1 <- ouwie_draws(df = maximadf, draws = 2, mod = "OU1", tree = lasth, sims =  hab_sims)
+ouwie_c_oum <- ouwie_draws(df = posts$c, draws = 10, 
+                                mod = "OUM", tree = lasth, 
+                                sims = hab_sims)
 
-ouwie_maxima_oum <- ouwie_draws(df = maximadf, draws = 2, mod = "OUM", tree = lasth, sims = hab_sims)
-
-
-#!!! OU1 model is identical across trees...odd??
-unlist(lapply(get_thetas(ouwie_maxima_ou1), function(x)x[1,]))
-
+hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)), 
+     breaks = 20)
+hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)),
+     breaks = 20)
 
 #get all aquatic-terr into a single vector 
-unlist(lapply(get_thetas(ouwie_maxima_oum), function(x)x[1,]))
+unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[1,]))
 #get all terrestrial into a single vector 
-unlist(lapply(get_thetas(ouwie_maxima_oum), function(x)x[2,]))
+unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[2,]))
 #get all vernal into a single vector
-unlist(lapply(get_thetas(ouwie_maxima_oum), function(x)x[3,]))
+unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[3,]))
 
 
 
-
-
-
-
-
-
-#old stuff
-mean(sapply(ouwie_maxima_ou1, function(x) x$AIC) > 
-       sapply(ouwie_maxima_oum, function(x) x$AIC))
-
-plot_ouwie_draws(ouwie_maxima_oum)
-compare_ouwie_draws(ouwie_maxima_oum)
 
 
 #ouwieBM <- OUwie(lasth, data = ouwieDat, model = "BM1",root.station = T)
@@ -323,10 +325,6 @@ compare_ouwie_draws(ouwie_maxima_oum)
 #ouwieOUM <- OUwie(lasth, data = ouwieDat, model = "OUM",root.station = T)
 #ouwieOUMV <- OUwie(lasth, data = ouwieDat, model = "OUMV",root.station = T)
 #ouwieOUMA <- OUwie(lasth, data = ouwieDat, model = "OUMA", root.station = T)
-
-library(qpcR)
-akaike.weights(c(ouwieBM$AIC, ouwieOU1$AIC, ouwieOUM$AIC, ouwieOUMV$AIC, ouwieOUMA$AIC, ouwieOUMVA$AIC))
-
 ```
 
 
