@@ -41,7 +41,8 @@ options(mc.cores = parallel::detectCores())
 ################################
 
 options(scipen=99) #avoid scientific notation when printing
-opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, message=FALSE, results='hide'))
+opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, 
+                                         message=FALSE, results='hide'))
 options(bitmapType="cairo")
 
 opar <- par()
@@ -84,7 +85,8 @@ load_emery <- function(){
     }
   }
   
-  #make another new column with species as integers instead of nominal for stan
+  #make another new column with species as integers instead of nominal 
+  #for stan
   species <- unique(emery$Species)
   sppint <- 1:length(species)
   emery$sppint <- rep(NA, nrow(emery))
@@ -93,13 +95,6 @@ load_emery <- function(){
   }
   return(emery)
 }
-
-#emery <- arrange(emery, sppint)
-#emery <- arrange(emery, treat)
-
-#by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == min(x)))
-#emery$Inflor_biomass[emery$Species == "minor"]
-#unique(names(biomass_max))
 
 
 #########################################
@@ -172,28 +167,14 @@ HDI <- function(values, percent=0.95){
 
 
 #load posterior draws of all 5 parameters plus the derived maxima parameter
-load_maximadf <- function()read.table(file = "bayes/maxima_draws.txt", header = T)
+load_maximadf <- function()read.table(file = "bayes/maxima_draws.txt", 
+                                      header = T)
 
 load_stanDat <- function(){
-  stan_samples <- list.files("bayes/")[grep ("tolerance_zig_v3_nohier.samples",
+  stan_samples <- list.files("bayes/")[grep ("tolerance_v3.samples",
                                              list.files("bayes/"))]
- rstan::read_stan_csv(paste0("bayes/",stan_samples))
+ rstan::read_stan_csv(paste0("bayes/", stan_samples))
 }
-
-#warnings()
-
-#alternate (normal) model
-#stan_samples_Normal <- list.files("bayes/")[grep ("tolerance_zig_vNormal_nohier.samples",
-#                                           list.files("bayes/"))]
-
-#stanDat_Normal <- rstan::read_stan_csv(paste0("bayes/",stan_samples_Normal))
-
-#posts_Normal <- extract(stanDat)
-#ndraws_Normal <- nrow(posts_Normal$lp__) #*0.1
-#summs <- rstan::summary(stanMod)$summary
-#posts_Normal <- extract(stanDat_Normal)
-#summs <- summary(stanDat_Normal)$summary
-
 
 #########################################
 #########################################
@@ -220,7 +201,8 @@ load_lasth <- function(){
   addbr <- 0.0001
   addtree <- rtree(n = length(newtips), rooted = T, 
                    tip.label = newtips, 
-                   br = rtruncnorm(n = length(newtips), a = addbr, mean = addbr, sd = 0.0001)
+                   br = rtruncnorm(n = length(newtips), a = addbr, 
+                                   mean = addbr, sd = 0.0001)
                    )
   
   lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
@@ -233,10 +215,4 @@ load_lasth <- function(){
   lasth <- chronopl(lasth, lambda = 1)
   return(lasth)
 }
-
-
-
-
-
-
 

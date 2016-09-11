@@ -11,10 +11,6 @@ output:
 ```{r}
 source("bayes/load_data.R")
 emery <- load_emery()
-
-by(data = emery$treat, INDICES = emery$Species, FUN = function(x) sum(x == max(x)))
-by(data = emery$treat, INDICES = emery$Species, FUN = max)
-emery$Inflor_biomass[emery$Species == "minor"]
 ```
 
 
@@ -28,9 +24,6 @@ rstan::traceplot(stanDat, par=c("e1"))
 
 
 ```{r}
-library(truncnorm)
-library(dplyr)
-
 
 priorDens <- list(a = NULL, b = NULL, c = NULL, 
                   d = NULL, e1 = NULL, nu = NULL, 
@@ -58,7 +51,8 @@ plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
     polygon(hyperDens_c, col="blue")
     mtext(text = "c", side = 3)
     lapply(tden, lines)
-#!!!!!!
+
+    #!!!!!!
 #priorDens$nu <- density(rgamma(nn, shape = 20, scale = 0.2))
 #plot(priorDens$nu$x, priorDens$nu$y)
 #!!!!!!
@@ -116,7 +110,7 @@ sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
 names(sppMaxVal) <- unique(emery$Species)
 
 #generate data
-xseq <- seq(0,1, length.out=200)
+xseq <- seq(0,1, length.out=ndraws)
 draw_list <- as.list(1:(ndraws*0.05))
 sppint_list <- as.list(1:max(emery$sppint))
 post_plot_draws <- lapply(sppint_list, function(sp)
