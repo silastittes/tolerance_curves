@@ -6,7 +6,7 @@ source("bayes/tolerance_functions.R")
 emery <- load_emery()
 
 ## simulate parameters and data ----------------------------
-nSpp <- 2
+nSpp <- 4
 nobs <- 400
 ntreat <- 10
 x_o <- seq(1, ntreat, length.out = ntreat) #data scale
@@ -15,15 +15,23 @@ nSppTreat <- nobs/nSpp/ntreat
 simreps <- 1
 ydat <- matrix(NA, nrow = nobs, ncol = simreps)
 for (z in 1:simreps) {
-  nu <- rgamma(1, 100, 100 / 50)
-  a <- rtruncnorm(n = nSpp, mean = 5, sd = 2, a = 2)
-  b <- rtruncnorm(n = nSpp, mean = 5, sd = 2, a = 2)
-  c <- rtruncnorm(n = nSpp, mean = 1, sd = 2, a = 2)
+  nu <- rgamma(1, 20, 0.2)
+  a <- rtruncnorm(n = nSpp, mean = 4, sd = 1, a = 2)
+  b <- rtruncnorm(n = nSpp, mean = 3, sd = 1, a = 2)
+  c <- rtruncnorm(n = nSpp, mean = 0, sd = 10, a = 0)
   d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 2, b = min(x_o))
   e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 2, a = max(x_o))
   e1 <- e - d
-  beta_0 <- rtruncnorm(1, mean = 0, sd = 1, a = -10)
-  beta_1 <- rtruncnorm(1, mean = -2, sd = 0.1, b = 0)
+  
+  
+  #beta_0 <- rnorm(1, mean = 0, sd = 2)
+  #beta_1 <- rtruncnorm(1, mean = 0, sd = 2, b = 0)
+
+  
+  beta_0 <- rnorm(1, mean = 20, sd = 2)
+  beta_1 <- rtruncnorm(1, mean = 0, sd = 2, b = 0)
+  
+  
   tseq <- seq(0,20, length.out = 1000)
   plot(tseq, plogis(beta_0 + beta_1*tseq))
 
@@ -64,22 +72,10 @@ for (z in 1:simreps) {
 
 range(ydat)
 
-fmu <- 0.1
-rgamma(n = 1, shape = nu, rate = nu / fmu)
-rgamma(n = 1, shape = nu, rate = nu / fmu/0.9)
-
 
 dimDat$yScale <- by(data = dimDat$y, INDICES = dimDat$spp, FUN = function(x) x/max(x))
 dimDat$yScale <- c(dimDat$yScale$`1` , dimDat$yScale$`2`)
 by(data = dimDat$y, INDICES = dimDat$spp, FUN = max)
-
-#visualize simulated data
-plot(jitter(dimDat$treat), ydat[,1],
-     col = dimDat$spp, pch = 19,
-     ylim = range(ydat), cex = 0.2,
-     xlab = 'Treatment',
-     ylab = 'Response')
-
 
 #visualize simulated data
 plot(jitter(dimDat$treat), dimDat$y,
@@ -97,12 +93,15 @@ dataList <- list(N = length(dimDat$spp),
                y = dimDat$y,
                numSpp = length(unique(dimDat$spp)),
                sppint = dimDat$spp)
+
+
 # estimate parameters
 watch <- c("a", "b", "c", "d", "e", "e1", "nu", "beta_0", "beta_1", "mu")
 stan.fit.sim <- stan(file = "bayes/tolerance_v3.stan",
                      data = dataList, 
-                     #iter = 200, chains = 2,
+                     iter = 200, chains = 4,
                 pars = watch)
+
 
 #stan.fit.sim
 #rstan::traceplot(stan.fit.sim, pars = watch)
@@ -124,19 +123,7 @@ for (i in 1:ndraw) {
 # add true
 lines(mu_vals, plogis(beta_0 + beta_1 * mu_vals), col = 'red', lwd = 3)
 
-#plot(jitter(dimDat$treat), ydat,
-#     col = dimDat$spp, pch = 19,
-#     ylim = range(ydat), cex = 0.2,
-#     xlab = 'Treatment',
-#     ylab = 'Response')
 
-
-plot(jitter(dimDat$treat), ydat,
-     col = dimDat$spp, pch = 19,
-     ylim = c(0,2), xlim=c(5,8),
-     cex = 0.2,
-     xlab = 'Treatment',
-     ylab = 'Response')
 
 #plot(jitter(dimDat$treat), dimDat$yScale,
 plot(jitter(dimDat$treat), dimDat$y,
@@ -144,28 +131,35 @@ plot(jitter(dimDat$treat), dimDat$y,
      cex = 0.2,
      type="n",
      xlab = 'Treatment',
-     ylab = 'Response', xlim=range(dimDat$treat)*c(1,1.2))
+     ylab = 'Response')#, xlim=range(dimDat$treat)*c(1,1.2))
 
 xseq <- seq(0,1, length.out=500)
 for(i in 1:ndraw){
   for(j in 1:ncol(post$e1)){
-    
     xdat1 <- xseq*post$e1[i,j] + post$d[i,j]
     ydat1 <- stretch.kumara(xseq, post$a[i,j], post$b[i,j], post$c[i,j])
-    yzig <- ydat1 * (1 - plogis(post$beta_0[i] + post$beta_1[i] * ydat1))
-    
+  
     lines(xdat1, ydat1, col=j)
-    #lines(xdat1,yzig, col=j)
-    
+  
   }
 }
+
+
+## ADD "TRUE" CURVES 
+for(i in 1:nSpp){
+  xdat1 <- xseq*e1[i] + d[i]
+  ydat1 <- stretch.kumara(xseq, a[i], b[i], c[i])
+  lines(xdat1, ydat1, col="cyan", lwd=2)
+}
+
+## ADD SMOOTH SPLINE CURVE
 
 slen <- unique(dimDat$spp)
 for(i in slen){
   subDat <- subset(dimDat, spp == i)
   #spln <- smooth.spline(subDat$treat, subDat$yScale)
   spln <- smooth.spline(subDat$treat, subDat$y)
-  lines(spln$x, spln$y, col="cyan", lwd=3)
+  lines(spln$x, spln$y, col="yellow", lwd=3)
 }
 
 points(jitter(dimDat$treat), dimDat$y,
@@ -222,10 +216,11 @@ meanDraws <- apply(X = post$mu, 2, mean)
 #plot(emery$Inflor_biomass, meanDraws)
 #abline(0,1, lty=2, col="red")
 plot(meanDraws, ydat - meanDraws,
-     pch=as.integer(emery$Species))
+     pch=as.integer(dimDat$spp))
 
 #abline(h=0)
 
 smth <- smooth.spline(meanDraws, ydat - meanDraws)
 lines(smth$x, smth$y)
 
+by(data = dimDat$y, INDICES = dimDat$spp, FUN = function(x) sum(x==0))
