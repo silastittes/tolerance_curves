@@ -212,7 +212,9 @@ load_lasth <- function(){
   #drop
   drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
   lasth <- drop.tip(phy = lasth, tip = drop)
-  lasth <- chronopl(lasth, lambda = 1)
+  lasth <- chronos(lasth, lambda = 1)
   return(lasth)
 }
+
+
 
