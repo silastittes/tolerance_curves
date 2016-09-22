@@ -170,8 +170,9 @@ for(i in 1:ndraw){
 ## ADD "TRUE" CURVES 
 for(i in 1:nSpp){
   xdat1 <- xseq*e1[i] + d[i]
-  ydat1 <- stretch.kumara(xseq, a[i], b[i], c[i])
-  lines(xdat1, ydat1, col="cyan", lwd=2)
+  ydat1 <- stretch.kumara(xseq, a[i],
+                          b[i], c[i]) #!!!
+  lines(xdat1, ydat1, col="red", lwd=2)
 }
 
 
@@ -186,22 +187,22 @@ for(i in slen){
 points(jitter(dimDat$treat), dimDat$y,
        bg = dimDat$spp, pch = 21)
 
-plotInt <- function(param, d, value){
+plotInt <- function(param, d, value, ...){
   
   di <- dim(param)
-  par_name <- deparse(substitute(param))
-  only_name <- unlist(strsplit(x = par_name, split = "\\$"))[2]
-  main_par <- paste(only_name, d)
+  #par_name <- deparse(substitute(param))
+  #only_name <- unlist(strsplit(x = par_name, split = "\\$"))[2]
+  #main_par <- paste(only_name, d)
   
   if( length(di) < 2){
     pDen <- density(param)
-    plot(pDen, main = main_par)
+    plot(pDen, ...)
     high <- max(pDen$y)*0.2
     qs <- quantile(param, c(0.025, 0.5, 0.975))
     pMean <- mean(param)
   } else {
     pDen <- density(param[,d])
-    plot(pDen, main = main_par)
+    plot(pDen, ...)
     high <- max(pDen$y)*0.2
     qs <- quantile(param[,d], c(0.025, 0.5, 0.975))
     pMean <- mean(param[,d])
@@ -210,31 +211,27 @@ plotInt <- function(param, d, value){
 
   segments(x0 = qs, y0 = 0, x1 = qs, y1 = high, col="red", lwd=4)
   segments(x0 = pMean, y0 = 0, x1 = pMean, y1 = high, col="green", lwd=4)
-  segments(x0 = value[d], y0 = 0, x1 = value[d], y1 = high, col="blue", lwd=4)
+  
+  #mean(t_p / (p_zero[,cl]))
+  segments(x0 = value[d],
+           y0 = 0, 
+           x1 = value[d],
+           y1 = high, col="blue", lwd=4)
   
   legend("topleft", c("true", "95% cred int", "mean"), 
          lwd=3, col=c("blue","red", "green"), bty="n", cex = 1)
 }
 
-plotInt(param = post$a, d = 1, value = a)
-plotInt(param = post$a, d = 2, value = a)
 
-plotInt(param = post$b, d = 1, value = b)
-plotInt(param = post$b, d = 2, value = b)
 
-plotInt(param = post$c, d = 1, value = c)
-plotInt(param = post$c, d = 2, value = c)
-
-plotInt(param = post$d, d = 1, value = d)
-plotInt(param = post$d, d = 2, value = d)
-
-plotInt(param = post$e1, d = 1, value = e1)
-plotInt(param = post$e1, d = 2, value = e1)
-
-plotInt(param = post$nu, d = 1, value = nu)
-
-plotInt(param = post$beta_0, d = 1, value = beta_0)
-plotInt(param = post$beta_1, d = 1, value = beta_1)
+#plot all post densitites with cred int and true vals
+yy <- as.list(names(post)[1:9])
+lapply(as.list(yy), function(y){
+  cPost <- eval(parse(text=paste("post$", y , sep = "")))
+  lapply(as.list(1:nSpp), function(x){
+    plotInt(param = cPost, d = x, value = a, main = paste(y, x))
+  })
+})
 
 
 meanDraws <- apply(X = post$mu, 2, mean)
@@ -249,9 +246,13 @@ by(data = dimDat$y,
 
 
 
-cl <- 1
-mcmc_p <- post$b[, cl]
-t_p <- a[cl]
-mcmc_q <- quantile(mcmc_p, c(0.025, 0.975))
-t_p
-mcmc_q[1] < t_p & t_p < mcmc_q[2]
+cl <- 4
+mcmc_p <- post$c[, cl]
+t_p <- c[cl]
+mcmc_q <- quantile(mcmc_p, c(0.0225, 0.975))
+(mcmc_q - t_p) / mcmc_q
+mcmc_q
+mean(t_p / (p_zero[,cl]))
+
+
+

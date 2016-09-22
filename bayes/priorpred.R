@@ -65,7 +65,10 @@ for (z in 1:simreps){
         if (is_zero) {
           dimDat$y[drow] <- 0
         } else {
-          dimDat$y[drow] <- rgamma(n = 1, shape = nu, rate = (1-p_zero[j, i]) * nu / mus[j, i])
+          dimDat$y[drow] <- rgamma(n = 1, 
+                                   shape = nu, 
+                                   rate = (1-p_zero[j, i]) * nu / mus[j, i]
+                                   )
         }
         drow <- drow + 1
       }
