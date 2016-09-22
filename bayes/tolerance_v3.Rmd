@@ -34,11 +34,12 @@ save samples and diagnostic data to files
 ```{r}
 #parameters to track
 watch <- c("a", "b", "c","d", "e", "e1", "mu",
-           "nu", "beta_0", "beta_1", "var_c", "mean_c")
+           "nu", "beta_0", "beta_1")
+           #"var_c", "mean_c")
 stan.fit <- stan(file = "bayes/tolerance_v3.stan",
                  data = dataList,
                  pars = watch,
-                 sample_file = "bayes/tolerance_v3.samples",
-                 diagnostic_file = "bayes/tolerance_v3.diag"
+                 sample_file = "bayes/samples/tolerance_v3.samples",
+                 diagnostic_file = "bayes/samples/tolerance_v3.diag"
 )
 ```

@@ -385,11 +385,6 @@ unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[3,]))
 ```
 
 
-
-
-
-
-
 Plot density of posteriors
 ```{r}
 
@@ -398,7 +393,7 @@ maxima_means2 <- sort(maxima_means[names(maxima_means) %in%
                                      lasth$tip.label],decreasing = T)
 
 mden <- apply(maximadf, 2, density)
-mden <- apply(posts$a, 2, density)
+mden <- apply(posts$c, 2, density)
 
 ylimit <- max(sapply(mden, function(x) max(x$y)))
 xlimit <- range(sapply(mden, function(x) range(x$x)))
@@ -411,12 +406,12 @@ plot(NA,NA,
 
 sapply(mden, FUN = function(x) lines(x = x$x, y = x$y) )
 legend("topright", 
-       names(sort(maxima_draw_2, decreasing = T)), 
+       names(sort(maxima_means2, decreasing = T)), 
        bty="n", cex = 1, text.font = 3)
 
 #dev.off()
 
-maxima_k <- phylosignal(x = maxima_means_2, phy = lasth)
+maxima_k <- phylosignal(x = maxima_means2, phy = lasth)
 maxima_k
 ```
 

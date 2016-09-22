@@ -1,5 +1,5 @@
 functions{
-  real kimura(real x, real a, real b, real c){
+  real kumara(real x, real a, real b, real c){
     //return c*a*b*pow(x,a-1)*pow(1-pow(x,a),b-1);
     return log(c) + log(a) + log(b) + (a-1)*log(x) + (b-1)*log1m(pow(x,a));
   }
@@ -35,6 +35,7 @@ parameters {
   real <lower = 2> a[numSpp];
   real <lower = 2> b[numSpp];
   real <lower = 0> c[numSpp];
+  
   real <lower = 0> mean_c;
   real <lower = 0> var_c;
 
@@ -61,7 +62,7 @@ transformed parameters {
 
   for(i in 1:N){
     xs[i]  = (x[i] - d[sppint[i]]) / e1[sppint[i]];
-    mu[i] = exp(kimura(xs[i], a[sppint[i]], b[sppint[i]], c[sppint[i]]));
+    mu[i] = exp(kumara(xs[i], a[sppint[i]], b[sppint[i]], c[sppint[i]]));
     logit_p_zero[i] = beta_0[sppint[i]] + beta_1[sppint[i]] * mu[i];
   }
 

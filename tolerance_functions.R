@@ -10,11 +10,12 @@ library(rmarkdown)
 library(knitr)
 library(scales)
 
-#Hadley
+#tidy
 library(dplyr)
 library(ggplot2)
 library(purrr)
 
+#other
 library(smoothmest)
 library(as.color)
 library(formatR)
@@ -60,7 +61,7 @@ opar$page <- NULL
 ####################
 
 load_emery <- function(){
-  emery <- read.csv("bayes/NEmeryData.csv", header=T)
+  emery <- read.csv("data/NEmeryData.csv", header=T)
   emery <- emery[is.na(emery$Inflor_biomass) == 0,]
   
   ###DELETE THIS###
@@ -167,13 +168,13 @@ HDI <- function(values, percent=0.95){
 
 
 #load posterior draws of all 5 parameters plus the derived maxima parameter
-load_maximadf <- function()read.table(file = "bayes/maxima_draws.txt", 
+load_maximadf <- function()read.table(file = "derived_files/maxima_draws.txt", 
                                       header = T)
 
 load_stanDat <- function(){
-  stan_samples <- list.files("bayes/")[grep ("tolerance_v3.samples",
-                                             list.files("bayes/"))]
- rstan::read_stan_csv(paste0("bayes/", stan_samples))
+  stan_samples <- list.files("bayes/samples/")[grep ("tolerance_v3.samples",
+                                             list.files("bayes/samples/"))]
+ rstan::read_stan_csv(paste0("bayes/samples/", stan_samples))
 }
 
 #########################################
@@ -185,7 +186,7 @@ load_stanDat <- function(){
 #lasth1 <- read.tree("LastheniaBayesian.tre")
 
 load_lasth <- function(){
-  lasth <- read.tree("ASR/LastheniaBayesian.tre")
+  lasth <- read.tree("data/LastheniaBayesian.tre")
   lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
   lasth$node.label <- round(as.numeric(lasth$node.label), 2)
   #plot.phylo(lasth, show.node.label = T)
