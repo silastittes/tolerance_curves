@@ -24,11 +24,11 @@ library(GPfit) #?
 library(truncnorm)
 
 #phylo comp tools
+library(geomorph)
 library(ape)
-library(picante)
 library(phytools)
 library(OUwie)
-library(geiger)
+
 
 #rstan
 library(rstan)
@@ -182,15 +182,12 @@ load_stanDat <- function(){
 ############ LOAD PHYLO DATA ############
 #########################################
 #########################################
-#Load Emery Tree
-#lasth1 <- read.tree("LastheniaBayesian.tre")
-
+#Load Tree
 load_lasth <- function(){
   lasth <- read.tree("data/LastheniaBayesian.tre")
   lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
   lasth$node.label <- round(as.numeric(lasth$node.label), 2)
-  #plot.phylo(lasth, show.node.label = T)
-  
+
   lasth_tips <- unlist(strsplit(lasth$tip.label, split = "L."))
   lasth_tips <- unlist(strsplit(lasth_tips , split = "'"))
   lasth_tips <- lasth_tips[lasth_tips != ""]
@@ -207,8 +204,6 @@ load_lasth <- function(){
                    )
   
   lasth <- bind.tree(x = lasth, y = addtree, where = holoAdd)
-  
-  #add polytomies
   
   #drop
   drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]

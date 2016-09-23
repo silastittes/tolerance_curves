@@ -1,4 +1,0 @@
-#NEXUS
-begin trees;
-	tree tree_1 = [&R] (((((((('L. microglossa':0.009655,'L. debilis':0.006713):0.023467,'L. sect. Hologymne':0.033269):0.029534,(('L. burkei':0.009483,'L. conjugens':0.012666):0.002739,'L. fremontii':0.011363):0.043454):0.014284,(('L. maritima':0.003499,'L. minor':0.002176):0.041313,'L. coronaria':0.044825):0.012498):0.004754,('L. kunthii':0.003605,'L. glaberrima':0.002024):0.057694):0.007355,'L. platycarpha':0.059647):0.008205,(('L. ornduffii':0.021255,'L. californica':0.023111):0.010874,('L. leptalea':0.033964,'L. gracilis':0.017002):0.003226):0.031796):0.012165,(amblyopappus:0.048801,eriophyllum:0.08274):0.012165);
-end;

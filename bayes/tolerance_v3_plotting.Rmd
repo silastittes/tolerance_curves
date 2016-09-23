@@ -90,17 +90,24 @@ par(opar)
 ```
 
 
+
+Plotting phylogenetic signal of curves
 ```{r}
-corrCE <- NULL
-for(i in 1:nrow(posts$lp__)){
-  cCorr <- cor(posts$c[i,], posts$e1[i,])
-  corrCE <- c(corrCE, cCorr)
-}
-hist(corrCE)
-mean(corrCE > 0)
-mean(corrCE)
-meanz <- summs[,1]
+
+curveK_draws <- read.table("derived_files/curve_K.txt")[,1]
+curveK_draws_scaled <- read.table("derived_files/curve_K_scaled.txt")[,1]
+den_curves <- lapply(list(curveK_draws, curveK_draws_scaled), density)
+xrng <- range(sapply(den_curves, function(x) x$x))
+yrng <- range(lapply(den_curves, function(x) x$y))
+plot(NA, NA, ylim=yrng, xlim = xrng,
+     xlab = "K", ylab = "density")
+polygon(density(curveK_draws), col = alpha("green", 0.5))
+polygon(density(curveK_draws_scaled), col = alpha("blue", 0.5))
+legend("topright", c("unscaled","scaled"), pch = 21, 
+       pt.bg = c(alpha("green", 0.5),alpha("blue", 0.5)))
+
 ```
+
 
 
 curve plots
@@ -232,14 +239,14 @@ predDF_Zero <- predDF[predDF$Inflor_biomass == 0, ]
 #plot(emery$Inflor_biomass, meanDraws)
 #abline(0,1, lty=2, col="red")
 plot(predDF_nZero$meanDraws, predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws,
-     pch=as.integer(emery$Species))
+     pch=as.integer(emery$Species), xlab = "fitted values", ylab = "residuals")
 points(predDF_Zero$meanDraws, predDF_Zero$Inflor_biomass - predDF_Zero$meanDraws,
      pch="z", cex=1.5)
-abline(h=0, lty = 2)
 
 smth <- smooth.spline(predDF_nZero$meanDraws, 
                       predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws)
-lines(smth$x, smth$y, lty=3)
+abline(h=0, lty = 2)
+lines(smth$x, smth$y, lty=3, lwd = 2)
 
 
 ```
