@@ -28,6 +28,8 @@ opt <- mclapply(sppint_list, function(sp){
 names(opt) <- unique(emery$Species)
 maximadf <- data.frame(opt)
 write.table(x = maximadf, file = "derived_files/maxima_draws.txt")
+maximadf <- read.table("derived_files/maxima_draws.txt")
+
 
 #SANITY CHECK
 #mden <- apply(maximadf, 2, density)
@@ -39,7 +41,6 @@ write.table(x = maximadf, file = "derived_files/maxima_draws.txt")
 ###############################################################
 ##CURVE SIGNAL-------------------------------------------------
 ###############################################################
-
 
 nspp <- nrow(unique(emery[,c(2,7)]))
 xseq_comm <- seq(1,5, length.out=200)
@@ -81,19 +82,10 @@ curveK_draws_scaled <- sapply(draw_list, function(pr){
   physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
 })
 
+curveK_draws_scaled
 
-
-
-
-den_curves <- lapply(list(curveK_draws, curveK_draws_scaled), density)
-xrng <- range(sapply(den_curves, function(x) x$x))
-yrng <- range(lapply(den_curves, function(x) x$y))
-plot(NA, NA, ylim=yrng, xlim = xrng,
-     xlab = "K", ylab = "density")
-polygon(density(curveK_draws), col = alpha("green", 0.5))
-polygon(density(curveK_draws_scaled), col = alpha("blue", 0.5))
-legend("topright", c("unscaled","scaled"), pch = 21, pt.bg = c(alpha("green", 0.5),alpha("blue", 0.5)))
-
+write.table(x = curveK_draws_scaled, file = "derived_files/curve_K_scaled.txt")
+write.table(x = curveK_draws, file = "derived_files/curve_K.txt")
 
 
 ##############################################################
@@ -123,21 +115,17 @@ regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
 #stochastic mapping for anc. state. recon. of habitat
 
 #number of stochastic maps of habitat
-mapsims <- 100
-
-describe.simmap(reg_fit)
-reg_fit$mapped.edge
-reg_fit$maps
-
+mapsims <- 2
 
 #generate maps
 reg_fit <- make.simmap(tree = lasth, state_reg, model = "ER", nsim = mapsims)
 
+
 #analyze transitions
-tt <- 8
-colnames(countSimmap(reg_fit)$Tr)[tt]
-plot(table(countSimmap(reg_fit)$Tr[,tt]))
-quantile(countSimmap(reg_fit)$Tr[,tt], c(0.225, 0.975))
+#tt <- 8
+#colnames(countSimmap(reg_fit)$Tr)[tt]
+#plot(table(countSimmap(reg_fit)$Tr[,tt]))
+#quantile(countSimmap(reg_fit)$Tr[,tt], c(0.225, 0.975))
 
 #prep for OUwie
 states <- colnames(reg_fit[[1]]$mapped.edge)
@@ -146,9 +134,14 @@ colz <- names(states)
 names(colz) <- states
 
 #example map
-plotSimmap(reg_fit[[1]], colors = colz)
+#plotSimmap(reg_fit[[1]], colors = colz)
+#reg_fit[[1]]$mapped.edge
+#nodelabels()
+#tiplabels()
+#dev.off() #reset plotting options
 
-#assign node habitat state randomly and propto post probs
+
+#assign node habitat state as maximum stochastic map node state
 simstates <- lapply(reg_fit, function(x){
   states[apply(x$mapped.edge, 1, which.max)]
   #apply(x$mapped.edge, 1, function(z){
@@ -187,7 +180,6 @@ ouwie_draws <- function(draws, df, mod, tree, sims){
   return(mapdraw)
 }
 
-
 ouwie_draws_ml <- function(draws, df, mod, tree, anc){
   
   anc_states <- anc[tree$edge[,2] > length(tree$tip.label)]
@@ -206,97 +198,56 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
   return(draws)
 }
 
-get_thetas <- function(ouwie_out){
-  lapply(ouwie_out, function(y) sapply(y, function(x)x$theta[,1]))  
-}
-
-get_aicc <- function(ouwie_out){
-  lapply(ouwie_out, function(y) sapply(y, function(x)x[["AICc"]]))
-}
-
-get_aic <- function(ouwie_out){
-  lapply(ouwie_out, function(y) sapply(y, function(x)x[["AIC"]]))
-}
-
-plot_ouwie_draws <- function(ouwie_draw_list){
-  
-  credz <- sapply(as.list(1:3), function(y){
-    quantile(sapply(ouwie_draw_list,
-                    function(x) x[["theta"]][[y]]),c(0.025, 0.975))
-  }
-  )
-  
-  denz <- lapply(as.list(1:3), function(y){
-    density(sapply(ouwie_draw_list, function(x) x[["theta"]][[y,1]]))
-  })
-  
-  xrng <- range(sapply(denz, function(z) z$x))
-  yrng <- range(sapply(denz, function(z) z$y))
-  
-  plot(NA, NA, xlim=xrng, ylim=yrng, xlab="", ylab="")
-  
-  lapply(denz, function(z) lines(z$x, z$y))
-  
-  segments(x0 = credz[1,], y0 = yrng[2]*c(0.2, 0.22, 0.23), 
-           x1 = credz[2,], y1 = yrng[2]*c(0.2, 0.22, 0.23), col=colz)
-}
-
-compare_ouwie_draws <- function(ouwie_draw_list){
-  
-  aq_terr_terr <- mean(sapply(ouwie_draw_list,
-                              function(x)x[["theta"]][[1,1]]) 
-                       >
-                         sapply(ouwie_draw_list,
-                                function(x)x[["theta"]][[2,1]]))
-  
-  aq_terr_vern <- mean(sapply(ouwie_draw_list,
-                              function(x)x[["theta"]][[1,1]]) 
-                       >
-                         sapply(ouwie_draw_list,
-                                function(x)x[["theta"]][[3,1]]))
-  
-  terr_vern <- mean(sapply(ouwie_draw_list, 
-                           function(x)x[["theta"]][[2,1]]) 
-                    >
-                      sapply(ouwie_draw_list,
-                             function(x)x[["theta"]][[3,1]]))
-  
-  return(list(aq_terr_terr = aq_terr_terr, 
-              aq_terr_vern = aq_terr_vern, 
-              terr_vern = terr_vern))
-}
-
+#set up parameter list
+post_params <- list(optma = maximadf, c = posts$c, d = posts$d, e1 = posts$e1)
+par_draws <- 1
 
 ### WITH maximum likelihood
 
-ouwie_c_ml_ou1 <- ouwie_draws_ml(df = posts$c, draws = 100, 
-                                 mod = "OU1", tree = lasth,
-                                 states_ml)
+#OU1
+ou1_ml_all_par <- mclapply(post_params, function(x){
+  ouwie_draws_ml(df = x, draws = par_draws, 
+                 mod = "OU1", tree = lasth,
+                 states_ml)
+  })
 
-ouwie_c_ml_oum <- ouwie_draws_ml(df = posts$c, draws = 100, 
-                                 mod = "OUM", tree = lasth,
-                                 states_ml)
+
+#OUM
+oum_ml_all_par <- mclapply(post_params, function(x){
+  ouwie_draws_ml(df = x, draws = par_draws, 
+                 mod = "OUM", tree = lasth,
+                 states_ml)
+  })
 
 
-quantile(sapply(ouwie_c_ml_ou1, function(x) x$AICc))
-quantile(sapply(ouwie_c_ml_oum, function(x) x$AICc))
+#with stochastic mapping
 
-### WITH stochastic mapping
+#OU1
+ou1_all_par <- mclapply(post_params, function(x){
+  ouwie_draws( df = x, draws = par_draws,
+               mod = "OU1", tree = lasth,
+               sims = hab_sims)
+  })
 
-ouwie_c_ou1 <- ouwie_draws(df = posts$c, draws = 100, 
-                           mod = "OU1", tree = lasth, 
-                           sims =  hab_sims)
 
-ouwie_c_oum <- ouwie_draws(df = posts$c, draws = 100, 
-                           mod = "OUM", tree = lasth, 
-                           sims = hab_sims)
+#OUM
+oum_all_par <- mclapply(post_params, function(x){
+  ouwie_draws( df = x, draws = par_draws,
+               mod = "OUM", tree = lasth,
+               sims = hab_sims)
+})
+
+
+
+#old stuff
 
 hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)), 
      breaks = 20)
 hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)),
      breaks = 20)
 
-mean(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)) < unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)))
+mean(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)) 
+     < unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)))
 
 
 #get all aquatic-terr into a single vector 

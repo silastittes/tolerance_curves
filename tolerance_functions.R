@@ -16,6 +16,7 @@ library(ggplot2)
 library(purrr)
 
 #other
+library(parallel)
 library(smoothmest)
 library(as.color)
 library(formatR)
