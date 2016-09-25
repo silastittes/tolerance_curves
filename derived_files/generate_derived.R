@@ -211,7 +211,6 @@ ou1_ml_all_par <- mclapply(post_params, function(x){
                  states_ml)
   })
 
-
 #OUM
 oum_ml_all_par <- mclapply(post_params, function(x){
   ouwie_draws_ml(df = x, draws = par_draws, 
@@ -223,7 +222,7 @@ oum_ml_all_par <- mclapply(post_params, function(x){
 #with stochastic mapping
 
 #OU1
-ou1_all_par <- mclapply(post_params, function(x){
+ou1_simmap_all_par <- mclapply(post_params, function(x){
   ouwie_draws( df = x, draws = par_draws,
                mod = "OU1", tree = lasth,
                sims = hab_sims)
@@ -231,7 +230,7 @@ ou1_all_par <- mclapply(post_params, function(x){
 
 
 #OUM
-oum_all_par <- mclapply(post_params, function(x){
+oum_simmap_all_par <- mclapply(post_params, function(x){
   ouwie_draws( df = x, draws = par_draws,
                mod = "OUM", tree = lasth,
                sims = hab_sims)
@@ -239,24 +238,14 @@ oum_all_par <- mclapply(post_params, function(x){
 
 
 
-#old stuff
+#write data to files -- perserve format using dump()
 
-hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)), 
-     breaks = 20)
-hist(unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)),
-     breaks = 20)
+dump(c("ou1_ml_all_par", "oum_ml_all_par"), 
+     file = "derived_files/ouwie_ml_all_par.R")
+dump(c("ou1_simmap_all_par", "oum_simmap_all_par"), 
+     file = "derived_files/ouwie_simmap_all_par.R")
 
-mean(unlist(lapply(get_aicc(ouwie_out = ouwie_c_ou1), function(x) x)) 
-     < unlist(lapply(get_aicc(ouwie_out = ouwie_c_oum), function(x) x)))
-
-
-#get all aquatic-terr into a single vector 
-unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[1,]))
-#get all terrestrial into a single vector 
-unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[2,]))
-#get all vernal into a single vector
-unlist(lapply(get_thetas(ouwie_c_oum), function(x)x[3,]))
-
-
+#source("ouwie_ml_all_par.R")
+#source("ouwie_simmap_all_par.R")
 
 
