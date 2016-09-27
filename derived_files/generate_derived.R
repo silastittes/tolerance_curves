@@ -1,7 +1,6 @@
 #GENERATE DERIVED PARAMETERS AND ANALYSES FOR LASTHENIA TOLERANCE CURVE DATA
 
 source("load_data.R")
-emery <- load_emery()
 
 ###############################################################
 ##OPTIMA-------------------------------------------------------
@@ -60,8 +59,8 @@ int <- mclapply(sppint_list, function(sp){
 
 names(int) <- unique(emery$Species)
 integraldf <- data.frame(int)
-write.table(x = integraldf, file = "derived_files/integraldf.txt")
-integraldf <- read.table("derived_files/integraldf.txt")
+write.table(x = integraldf, file = "derived_files/integral_draws.txt")
+integraldf <- read.table("derived_files/integral_draws.txt")
 
 
 #SANITY CHECK
@@ -70,7 +69,6 @@ integraldf <- read.table("derived_files/integraldf.txt")
 #xlimit <- range(sapply(mden, function(x) range(x$x)))
 #plot(NA,NA, xlim=xlimit, ylim=c(0,ylimit), xlab="", ylab="", main="")
 #sapply(mden, FUN = function(x) lines(x = x$x, y = x$y) )
-
 
 
 ###############################################################
@@ -86,18 +84,20 @@ names(sppMaxVal) <- unique(emery$Species)
 draw_list <- as.list(1:ndraws) #posterior draws as list
 sppint_list <- as.list(1:max(emery$sppint)) #species are columns
 curveK_draws <- sapply(draw_list, 
-                       function(pr){ spp_mat <- t(sapply(sppint_list, function(sp){
-                         scale.kumara(xs = xseq_comm,
-                                      a = posts$a[pr,sp],
-                                      b = posts$b[pr,sp],
-                                      c = posts$c[pr,sp],
-                                      d = posts$d[pr,sp],
-                                      e1 = posts$e1[pr,sp]
-                         )
-                       })
-                       )
-                       rownames(spp_mat) <- unique(emery[,2])
-                       physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
+                       function(pr){ 
+                         spp_mat <- t(sapply(sppint_list, function(sp){
+                           scale.kumara(xs = xseq_comm,
+                                        a = posts$a[pr,sp],
+                                        b = posts$b[pr,sp],
+                                        c = posts$c[pr,sp],
+                                        d = posts$d[pr,sp],
+                                        e1 = posts$e1[pr,sp]
+                                        )
+                           })
+                           )
+                         rownames(spp_mat) <- unique(emery[,2])
+                         physignal(A = spp_mat, phy = lasth, 
+                                   iter = 1)$phy.signal
                        })
 
 
@@ -110,14 +110,12 @@ curveK_draws_scaled <- sapply(draw_list, function(pr){
                  c = posts$c[pr,sp]/sppMaxVal[sp], #alt
                  d = posts$d[pr,sp],
                  e1 = posts$e1[pr,sp]
-    )
-  })
+                 )
+    })
   )
   rownames(spp_mat) <- unique(emery[,2])
   physignal(A = spp_mat, phy = lasth, iter = 1)$phy.signal
 })
-
-curveK_draws_scaled
 
 write.table(x = curveK_draws_scaled, file = "derived_files/curve_K_scaled.txt")
 write.table(x = curveK_draws, file = "derived_files/curve_K.txt")
@@ -150,7 +148,7 @@ regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
 #stochastic mapping for anc. state. recon. of habitat
 
 #number of stochastic maps of habitat
-mapsims <- 2
+mapsims <- 100
 
 #generate maps
 reg_fit <- make.simmap(tree = lasth, state_reg, model = "ER", nsim = mapsims)
@@ -187,10 +185,12 @@ simstates <- lapply(reg_fit, function(x){
 states_ml <- apply(regFit_ml$marginal.anc, 1, function(x) states[which.max(x)])
 
 #subset to nodes only
-anc_sims <- lapply(simstates, function(x) x[lasth$edge[,2] > length(lasth$tip.label)])
+anc_sims <- lapply(simstates, function(x) x[lasth$edge[,2] > 
+                                              length(lasth$tip.label)])
 hab_sims <- lapply(simstates, function(x) x)
 
-#function to apply OUwie over posterior tolerance draws, and stochastic map draws
+#function to apply OUwie over posterior tolerance draws, 
+#and stochastic map draws
 #OUwie data frame = taxa, regime, trait value
 ouwie_draws <- function(draws, df, mod, tree, sims){
   
@@ -234,12 +234,16 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
 }
 
 #set up parameter list
-post_params <- list(optma = maximadf, c = posts$c, d = posts$d, e1 = posts$e1)
-par_draws <- 1
+post_params <- list(integ = integraldf, optma = maximadf,
+                    c = posts$c, d = posts$d, e1 = posts$e1)
+par_draws <- 100
 
 ### WITH maximum likelihood
 
 #OU1
+
+names(post_params)
+
 ou1_ml_all_par <- mclapply(post_params, function(x){
   ouwie_draws_ml(df = x, draws = par_draws, 
                  mod = "OU1", tree = lasth,
@@ -269,6 +273,7 @@ oum_simmap_all_par <- mclapply(post_params, function(x){
   ouwie_draws( df = x, draws = par_draws,
                mod = "OUM", tree = lasth,
                sims = hab_sims)
+  
 })
 
 
@@ -280,7 +285,47 @@ dump(c("ou1_ml_all_par", "oum_ml_all_par"),
 dump(c("ou1_simmap_all_par", "oum_simmap_all_par"), 
      file = "derived_files/ouwie_simmap_all_par.R")
 
-#source("ouwie_ml_all_par.R")
-#source("ouwie_simmap_all_par.R")
+source("derived_files/ouwie_ml_all_par.R")
+source("derived_files/ouwie_simmap_all_par.R")
 
+compMat <- sapply(as.list(1:14), function(x){
+  sapply(as.list(1:14), function(y){
+    val <- mean(posts$e1[,y] +  posts$d[,y] > posts$e1[,x] + posts$d[,x])
+    ifelse(  y > x & (val >= 0.95 | val <= 0.05), yes = "*", no = "-")
+  })
+})
+
+rownames(compMat) <- unique(emery$Species)
+colnames(compMat) <- unique(emery$Species)
+compMat
+
+
+compMat <- sapply(as.list(1:14), function(x){
+  sapply(as.list(1:14), function(y){
+    val <- mean(posts$c[,y] * posts$e1[,y] > posts$c[,x] * posts$e1[,x])
+    #ifelse(  y > x & (val >= 0.95 | val <= 0.05), yes = "*", no = "-")
+    if(y > x){
+      if(val >= 0.95){
+        ">"
+      } else if(val <= 0.05){
+        "<"
+      } else{
+        "-"
+      }
+    }
+  })
+})
+
+mean(maximadf[,3] > maximadf[,4])
+
+rownames(compMat) <- unique(emery$Species)
+colnames(compMat) <- unique(emery$Species)
+compMat
+
+
+quantile(sapply(ou1_simmap_all_par$c, function(y){
+  sapply(y, function(x) x$AICc)}))
+
+quantile(sapply(oum_simmap_all_par$c, function(y){
+  sapply(y, function(x) x$AICc)}))
 
