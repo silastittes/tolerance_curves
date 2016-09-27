@@ -8,7 +8,7 @@ emery <- load_emery()
 ###############################################################
 
 #Approximate location of water treatment optima
-xseq_big <- seq(0,1, length.out=1000)
+xseq_big <- seq(0,1, length.out=10000)
 draw_list <- as.list(1:(ndraws*1))
 sppint_list <- as.list(1:max(emery$sppint))
 opt <- mclapply(sppint_list, function(sp){
@@ -37,6 +37,41 @@ maximadf <- read.table("derived_files/maxima_draws.txt")
 #xlimit <- range(sapply(mden, function(x) range(x$x)))
 #plot(NA,NA, xlim=xlimit, ylim=c(0,ylimit), xlab="", ylab="", main="")
 #sapply(mden, FUN = function(x) lines(x = x$x, y = x$y) )
+
+
+###############################################################
+##INTEGRAL-----------------------------------------------------
+###############################################################
+
+#Approximate location of water treatment optima
+xseq_big <- seq(0,1, length.out=10000)
+draw_list <- as.list(1:(ndraws*1))
+sppint_list <- as.list(1:max(emery$sppint))
+int <- mclapply(sppint_list, function(sp){
+  sapply(draw_list, function(pr){
+    int_kumara(xs = xseq_big,
+               a = posts$a[pr,sp],
+               b = posts$b[pr,sp],
+               c = posts$c[pr,sp],
+               d = posts$d[pr,sp],
+               e1 = posts$e1[pr,sp])
+  })
+})
+
+names(int) <- unique(emery$Species)
+integraldf <- data.frame(int)
+write.table(x = integraldf, file = "derived_files/integraldf.txt")
+integraldf <- read.table("derived_files/integraldf.txt")
+
+
+#SANITY CHECK
+#mden <- apply(integraldf, 2, density)
+#ylimit <- max(sapply(mden, function(x) max(x$y)))
+#xlimit <- range(sapply(mden, function(x) range(x$x)))
+#plot(NA,NA, xlim=xlimit, ylim=c(0,ylimit), xlab="", ylab="", main="")
+#sapply(mden, FUN = function(x) lines(x = x$x, y = x$y) )
+
+
 
 ###############################################################
 ##CURVE SIGNAL-------------------------------------------------

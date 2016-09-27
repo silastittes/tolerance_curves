@@ -135,12 +135,15 @@ unscale.kumara <- function(x, a, b, c, d, e1){
 
 int_kumara <- function(xs, a, b, c, d, e1){
   x <- xs * e1 + d
-  dx <- x[length(x)]/length(x)
+  dx <- diff(range(x))/length(x)
   mod.fit <- c*((a*b*xs^(a-1) ) * (1-xs^a)^(b-1))
   sum(mod.fit)*dx
 }
 
-
+#xx <- seq(2, 23.2, length.out = 10000)
+#dx <- diff(range(xx))/length(xx)
+#sum(xx^2)*dx
+#(xx[length(xx)]^3)/3 - (xx[1]^3)/3
 
 opt.kumara <- function(xs, a, b, c, d, e1){
   x <- xs * e1 + d
