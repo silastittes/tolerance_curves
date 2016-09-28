@@ -2,6 +2,7 @@
 
 source("load_data.R")
 
+
 ###############################################################
 ##OPTIMA-------------------------------------------------------
 ###############################################################
@@ -148,7 +149,7 @@ regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
 #stochastic mapping for anc. state. recon. of habitat
 
 #number of stochastic maps of habitat
-mapsims <- 100
+mapsims <- 2
 
 #generate maps
 reg_fit <- make.simmap(tree = lasth, state_reg, model = "ER", nsim = mapsims)
@@ -202,7 +203,7 @@ ouwie_draws <- function(draws, df, mod, tree, sims){
     tip_states <- y[tree$edge[,2] <= length(tree$tip.label)]
     
     #run posterior draws against each stochastic habitat reconstruction
-    draws <- lapply(X = as.list(1:draws), FUN = function(x){
+    draws <- mclapply(X = as.list(1:draws), FUN = function(x){
       X <- matrix(df[x,])
       #X <- apply(maximadf, 2, mean)
       ouwieDat <- data.frame(Genus_species=Genus_species,
@@ -222,7 +223,7 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
   tip_states <- anc[tree$edge[,2] <= length(tree$tip.label)]
   
   #run posterior draws against each stochastic habitat reconstruction
-  draws <- lapply(X = as.list(1:draws), FUN = function(x){
+  draws <- mclapply(X = as.list(1:draws), FUN = function(x){
     X <- matrix(df[x,])
     #X <- apply(maximadf, 2, mean)
     ouwieDat <- data.frame(Genus_species=Genus_species,
@@ -236,73 +237,80 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
 #set up parameter list
 post_params <- list(integ = integraldf, optma = maximadf,
                     c = posts$c, d = posts$d, e1 = posts$e1)
-par_draws <- 100
+par_draws <- 2
 
 ### WITH maximum likelihood
 
-#OU1
+#OU1 ML
+for(x in names(post_params)){
+  xdraw <- ouwie_draws_ml(df = post_params[[x]], draws = par_draws, 
+                          mod = "OU1", tree = lasth,
+                          states_ml)
+  dump(list = "xdraw", 
+       file = paste0("derived_files/", x, "_OU1_ml.txt"))
+}
 
-names(post_params)
-
-ou1_ml_all_par <- mclapply(post_params, function(x){
-  ouwie_draws_ml(df = x, draws = par_draws, 
-                 mod = "OU1", tree = lasth,
-                 states_ml)
-  })
-
-#OUM
-oum_ml_all_par <- mclapply(post_params, function(x){
-  ouwie_draws_ml(df = x, draws = par_draws, 
+#OUM ML
+for(x in names(post_params)){
+  xdraw <- ouwie_draws_ml(df = post_params[[x]], draws = par_draws, 
                  mod = "OUM", tree = lasth,
                  states_ml)
-  })
+  dump(list = "xdraw", 
+       file = paste0("derived_files/", x, "_OUM_ml.txt"))
+}
 
 
 #with stochastic mapping
 
 #OU1
-ou1_simmap_all_par <- mclapply(post_params, function(x){
-  ouwie_draws( df = x, draws = par_draws,
-               mod = "OU1", tree = lasth,
-               sims = hab_sims)
-  })
+for(x in names(post_params)){
+  xdraw <- ouwie_draws(df = post_params[[x]], draws = par_draws,
+                       mod = "OU1", tree = lasth,
+                       sims = hab_sims)
+  dump(list = "xdraw", 
+       file = paste0("derived_files/", x, "_OU1_simmap.txt"))
+}
+
+for(x in names(post_params)){
+  xdraw <- ouwie_draws(df = post_params[[x]], draws = par_draws, 
+                       mod = "OUM", tree = lasth,
+                       sims = hab_sims)
+  dump(list = "xdraw", 
+       file = paste0("derived_files/", x, "_OUM_simmap.txt"))
+}
+
+
+
+#ou1_simmap_all_par <- mclapply(post_params, function(x){
+#  ouwie_draws( df = x, draws = par_draws,
+#               mod = "OU1", tree = lasth,
+#               sims = hab_sims)
+#  })
 
 
 #OUM
-oum_simmap_all_par <- mclapply(post_params, function(x){
-  ouwie_draws( df = x, draws = par_draws,
-               mod = "OUM", tree = lasth,
-               sims = hab_sims)
-  
-})
-
+#oum_simmap_all_par <- mclapply(post_params, function(x){
+#  ouwie_draws( df = x, draws = par_draws,
+#               mod = "OUM", tree = lasth,
+#               sims = hab_sims)
+#})
 
 
 #write data to files -- perserve format using dump()
 
-dump(c("ou1_ml_all_par", "oum_ml_all_par"), 
-     file = "derived_files/ouwie_ml_all_par.R")
-dump(c("ou1_simmap_all_par", "oum_simmap_all_par"), 
-     file = "derived_files/ouwie_simmap_all_par.R")
+#dump(c("ou1_ml_all_par", "oum_ml_all_par"), 
+#     file = "derived_files/ouwie_ml_all_par.R")
+#dump(c("ou1_simmap_all_par", "oum_simmap_all_par"), 
+#     file = "derived_files/ouwie_simmap_all_par.R")
 
-source("derived_files/ouwie_ml_all_par.R")
-source("derived_files/ouwie_simmap_all_par.R")
-
-compMat <- sapply(as.list(1:14), function(x){
-  sapply(as.list(1:14), function(y){
-    val <- mean(posts$e1[,y] +  posts$d[,y] > posts$e1[,x] + posts$d[,x])
-    ifelse(  y > x & (val >= 0.95 | val <= 0.05), yes = "*", no = "-")
-  })
-})
-
-rownames(compMat) <- unique(emery$Species)
-colnames(compMat) <- unique(emery$Species)
-compMat
+#source("derived_files/ouwie_ml_all_par.R")
+#source("derived_files/ouwie_simmap_all_par.R")
 
 
 compMat <- sapply(as.list(1:14), function(x){
   sapply(as.list(1:14), function(y){
-    val <- mean(posts$c[,y] * posts$e1[,y] > posts$c[,x] * posts$e1[,x])
+    #val <- mean(posts$c[,y] > posts$c[,x])
+    val <- mean(integraldf[,y] > integraldf[,x])
     #ifelse(  y > x & (val >= 0.95 | val <= 0.05), yes = "*", no = "-")
     if(y > x){
       if(val >= 0.95){
@@ -315,6 +323,13 @@ compMat <- sapply(as.list(1:14), function(x){
     }
   })
 })
+
+length(grep(">", compMat)) + length(grep("<", compMat))
+#c = 57
+
+rownames(compMat) <- unique(emery$Species)
+colnames(compMat) <- unique(emery$Species)
+compMat
 
 mean(maximadf[,3] > maximadf[,4])
 
