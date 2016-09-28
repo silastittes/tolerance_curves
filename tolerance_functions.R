@@ -1,3 +1,24 @@
+################################
+## SET SEED FOR REPRODUCIBILE ##
+################################
+
+#set.seed(07142015)
+
+################################
+################################
+### install missing packages ###
+################################
+################################
+
+pkgs <- c("scales", "dplyr", "parallel", 
+          "truncnorm", "geomorph", "ape", 
+          "phytools", "OUwie", "rstan"
+          )
+
+needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
+
+if(length(needed)) install.packages(needed, dependencies = TRUE)
+
 
 ################
 ################
@@ -6,22 +27,22 @@
 ################
 
 #MARKDOWN AND GRAPHICS
-library(rmarkdown)
-library(knitr)
+#library(rmarkdown)
+#library(knitr)
 library(scales)
 
 #tidy
 library(dplyr)
-library(ggplot2)
-library(purrr)
+#library(ggplot2)
+#library(purrr)
 
 #other
 library(parallel)
-library(smoothmest)
-library(as.color)
-library(formatR)
-library(dtw) #?
-library(GPfit) #?
+#library(smoothmest)
+#library(as.color)
+#library(formatR)
+#library(dtw) 
+#library(GPfit)
 library(truncnorm)
 
 #phylo comp tools
@@ -29,7 +50,6 @@ library(geomorph)
 library(ape)
 library(phytools)
 library(OUwie)
-
 
 #rstan
 library(rstan)
@@ -41,11 +61,6 @@ options(mc.cores = parallel::detectCores())
 ######### PAR SETTINGS #########
 ################################
 ################################
-
-options(scipen=99) #avoid scientific notation when printing
-opts_chunk$set(tidy=TRUE, tidy.opts=list(width.cutoff=70, 
-                                         message=FALSE, results='hide'))
-options(bitmapType="cairo")
 
 opar <- par()
 opar$cin <- NULL
@@ -105,34 +120,40 @@ load_emery <- function(){
 #########################################
 #########################################
 
+#input (0,1) vector, output corresponding values from model described in text.
 stretch.kumara <- function(x, a, b, c){
   return(c*((a*b*x^(a-1) ) * (1-x^a)^(b-1)))
 }
 
+#convert data scale values then return values from model
 stretch.kumara2 <- function(xs, a, b, c, d, e1){
   x <- (xs - d)/e1
   mod.fit <- c*((a*b*x^(a-1) ) * (1-x^a)^(b-1))
   return(mod.fit)
 }
 
+#for returning rescaled x axis and corresponding output 
 plot.kumara <- function(xs, a, b, c, d, e1){
   x <- xs * e1 + d
   mod.fit <- c*((a*b*xs^(a-1) ) * (1-xs^a)^(b-1))
   list(x, mod.fit)
 }
 
+#for returning output after rescaling to supported (0,1)
 scale.kumara <- function(xs, a, b, c, d, e1){
   x <- (xs - d)/e1
   mod.fit <- c*((a*b*x^(a-1) ) * (1-x^a)^(b-1))
   return(mod.fit)
 }
 
+#for returning rescaled x axis and corresponding output
 unscale.kumara <- function(x, a, b, c, d, e1){
   xs <- x*e1 + d
   mod.fit <- c*((a*b*x^(a-1) ) * (1-x^a)^(b-1))
   return(list(xs = xs, mod.fit=mod.fit))
 }
 
+#for getting appoximate integral
 int_kumara <- function(xs, a, b, c, d, e1){
   x <- xs * e1 + d
   dx <- diff(range(x))/length(x)
@@ -140,11 +161,7 @@ int_kumara <- function(xs, a, b, c, d, e1){
   sum(mod.fit)*dx
 }
 
-#xx <- seq(2, 23.2, length.out = 10000)
-#dx <- diff(range(xx))/length(xx)
-#sum(xx^2)*dx
-#(xx[length(xx)]^3)/3 - (xx[1]^3)/3
-
+#for getting approximate optimum
 opt.kumara <- function(xs, a, b, c, d, e1){
   x <- xs * e1 + d
   mod.fit <- c*((a*b*xs^(a-1) ) * (1-xs^a)^(b-1))
