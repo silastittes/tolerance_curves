@@ -149,7 +149,7 @@ regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
 #stochastic mapping for anc. state. recon. of habitat
 
 #number of stochastic maps of habitat
-mapsims <- 2
+mapsims <- 100
 
 #generate maps
 reg_fit <- make.simmap(tree = lasth, state_reg, model = "ER", nsim = mapsims)
@@ -237,7 +237,7 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
 #set up parameter list
 post_params <- list(integ = integraldf, optma = maximadf,
                     c = posts$c, d = posts$d, e1 = posts$e1)
-par_draws <- 2
+par_draws <- 100
 
 ### WITH maximum likelihood
 
@@ -338,9 +338,9 @@ colnames(compMat) <- unique(emery$Species)
 compMat
 
 
-quantile(sapply(ou1_simmap_all_par$c, function(y){
-  sapply(y, function(x) x$AICc)}))
+#quantile(sapply(ou1_simmap_all_par$c, function(y){
+#  sapply(y, function(x) x$AICc)}))
 
-quantile(sapply(oum_simmap_all_par$c, function(y){
-  sapply(y, function(x) x$AICc)}))
+#quantile(sapply(oum_simmap_all_par$c, function(y){
+#  sapply(y, function(x) x$AICc)}))
 
