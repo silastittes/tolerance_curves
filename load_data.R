@@ -6,3 +6,5 @@ posts <- extract(stanDat)
 ndraws <- nrow(posts$lp__)
 summs <- summary(stanDat)$summary
 lasth <- load_lasth()
+integraldf <- load_integral()
+maximadf <- load_maxima()

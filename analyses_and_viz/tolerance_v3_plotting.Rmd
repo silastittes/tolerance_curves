@@ -10,16 +10,25 @@ output:
 ## Data prep
 ```{r}
 source("load_data.R")
-emery <- load_emery()
 ```
 
 
 ```{r}
+#note parameters as discussed in paper are:
+  #a = alpha
+  #b = beta
+  #c = zeta
+  #d = delta
+  #e1 = epsilon
+#traceplot for parameter for each species
 rstan::traceplot(stanDat, par=c("a"))
 rstan::traceplot(stanDat, par=c("b"))
 rstan::traceplot(stanDat, par=c("c"))
 rstan::traceplot(stanDat, par=c("d"))
 rstan::traceplot(stanDat, par=c("e1"))
+rstan::traceplot(stanDat, par=c("beta_0"))
+rstan::traceplot(stanDat, par=c("beta_1"))
+rstan::traceplot(stanDat, par=c("nu"))
 ```
 
 
@@ -59,7 +68,8 @@ plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
 
 par(mfrow=c(5,2))
 par(mar=c(3,3,1,1))
-namez <- c("a", "b", "c", "mean_c", "d", "e1", "nu", "beta_0", "beta_1", "lp__")
+namez <- c("a", "b", "c", "mean_c", "d", "e1", "nu", 
+           "beta_0", "beta_1", "lp__")
 for(i in namez){
   cPost <- posts[[i]]
   if(cPost)
@@ -72,7 +82,8 @@ for(i in namez){
     tden <- apply(cPost, 2, density)
     ylimit <- max(sapply(tden, function(x) max(x$y)))
     xlimit <- range(sapply(tden, function(x) range(x$x)))
-    plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
+    plot(NA,NA, ylim=c(0,ylimit), 
+         xlim=xlimit, xlab="", ylab="", main="")
     polygon(priorDens[[i]], col="red")
     mtext(text = i, side = 3)
     lapply(tden, lines)
@@ -82,9 +93,19 @@ for(i in namez){
 tden <- apply(maximadf, 2, density)
 ylimit <- max(sapply(tden, function(x) max(x$y)))
 xlimit <- range(sapply(tden, function(x) range(x$x)))
-plot(NA,NA, ylim=c(0,ylimit), xlim=xlimit, xlab="", ylab="", main="")
+plot(NA,NA, ylim=c(0,ylimit), 
+     xlim=xlimit, xlab="", ylab="", main="")
 mtext(text = "maxima", side = 3)
 lapply(tden, lines)
+
+tden <- apply(integraldf, 2, density)
+ylimit <- max(sapply(tden, function(x) max(x$y)))
+xlimit <- range(sapply(tden, function(x) range(x$x)))
+plot(NA,NA, ylim=c(0,ylimit), 
+     xlim=xlimit, xlab="", ylab="", main="")
+mtext(text = "maxima", side = 3)
+lapply(tden, lines)
+
 
 par(opar)
 ```
@@ -110,10 +131,85 @@ legend("topright", c("unscaled","scaled"), pch = 21,
 
 
 
+OUwie result visualization
+```{r}
+
+ouwie_files <- list.files(path = "derived_files/", 
+                          pattern = "OUM_simmap")
+list.files(path = "derived_files/")
+get_ouwie_mat <- function(file_name){
+  cOuwie <- source(file_name)
+  
+  uno <- sapply(cOuwie$value, function(x){
+    lapply(x, function(y){
+      y$theta[[1]]
+      })
+  })
+  
+  dose <- sapply(cOuwie$value, function(x){
+    lapply(x, function(y){
+      y$theta[[2]]
+      })
+  })
+  
+  tres <- sapply(cOuwie$value, function(x){
+    lapply(x, function(y){
+      y$theta[[3]]
+      })
+  })
+  
+  cOuwie_mat <- cbind(
+    matrix(unlist(uno), ncol = 1),
+    matrix(unlist(dose), ncol = 1),
+    matrix(unlist(tres), ncol = 1)
+  )
+  colnames(cOuwie_mat) <- c("aqua_terr", "terrestrial", "vernal")
+  head(cOuwie_mat)
+  return(cOuwie_mat)
+}
+
+int_oum_sim <- get_ouwie_mat(file_name = "derived_files/c_OUM_simmap.txt")
+
+
+den_ou <- apply(int_oum_sim, 2, density)
+xrng <- range(sapply(den_ou, function(x) range(x$x)))
+yrng <- range(sapply(den_ou, function(x) range(x$y)))
+
+hdis <- apply(int_oum_sim, 2, HDI, percent = 0.95)
+xrng <- range(hdis)*c(0.8, 1.2)
+yrng <- range(sapply(den_ou, function(x) range(x$y)))
+
+
+colz <- as.color(x = 1:3, alpha = 0.5)
+plot(NA,NA, xlim = xrng, ylim = yrng)
+for( i in seq_along(den_ou)){
+  
+  #lines(den_ou[[i]]$x, den_ou[[i]]$y, col = colz[i], lwd =3)
+  lines(den_ou[[i]]$x, den_ou[[i]]$y)
+  
+  min_low_hdi <- which.min(abs(den_ou[[i]]$x - hdis[1,i]))
+  min_hi_hdi <- which.min(abs(den_ou[[i]]$x - hdis[2,i]))
+  
+  xden_hdi <- den_ou[[i]]$x[min_low_hdi:min_hi_hdi]
+  yden_hdi <- den_ou[[i]]$y[min_low_hdi:min_hi_hdi]
+  
+  polygon( c(xden_hdi, rev(xden_hdi)), 
+           c(rep(0, length(yden_hdi)), rev(yden_hdi)),
+           col = colz[i], border = F)
+}
+
+  
+
+```
+
+
+
+
 curve plots
 ```{r}
 
-sppMaxVal <- by(data = emery$Inflor_biomass, INDICES = emery$sppint, FUN = max)
+sppMaxVal <- by(data = emery$Inflor_biomass, 
+                INDICES = emery$sppint, FUN = max)
 names(sppMaxVal) <- unique(emery$Species)
 
 #generate data
@@ -157,6 +253,7 @@ names(mean_plot_draws) <- unique(emery$Species)
 
 xr <- range(sapply(post_plot_draws, function(x) x[[1]][[1]]))*1.2
 yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.4)
+
 #yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
 #yr[2] <- ifelse( yr[2] > max(emery$Inflor_biomass), yes = yr[2], max(emery$Inflor_biomass))
 
@@ -168,7 +265,7 @@ spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <=
 length(lasth$tip.label)]])
 
 #pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
-pdf("figures/tree_tolerance_scaled.pdf") #alt
+#pdf("figures/tree_tolerance_scaled.pdf") #alt
 
 
 c1 <- rep(1, length(spp_list))
@@ -222,7 +319,7 @@ for(spp in spp_list){
     #dev.off()
 }
 
-dev.off()
+#dev.off()
 
 ```
 
