@@ -191,7 +191,9 @@ HDI <- function(values, percent=0.95){
 
 
 #load posterior draws of all 5 parameters plus the derived maxima parameter
-load_maximadf <- function()read.table(file = "derived_files/maxima_draws.txt", 
+load_maxima <- function()read.table(file = "derived_files/maxima_draws.txt", 
+                                      header = T)
+load_integral <- function()read.table(file = "derived_files/integral_draws.txt", 
                                       header = T)
 
 load_stanDat <- function(){
