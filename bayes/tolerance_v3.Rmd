@@ -32,14 +32,16 @@ Run stan with default options:
 (saving 1000 draws per chain is PLENTY for this model in stan)
 save samples and diagnostic data to files
 ```{r}
+set.seed(11091984)
 #parameters to track
 watch <- c("a", "b", "c","d", "e", "e1", "mu",
-           "nu", "beta_0", "beta_1")
-           #"var_c", "mean_c")
+           "nu", "beta_0", "beta_1",
+           "var_c", "mean_c")
 stan.fit <- stan(file = "bayes/tolerance_v3.stan",
                  data = dataList,
                  pars = watch,
                  sample_file = "bayes/samples/tolerance_v3.samples",
-                 diagnostic_file = "bayes/samples/tolerance_v3.diag"
+                 diagnostic_file = "bayes/samples/tolerance_v3.diag",
+                 seed = 11101989
 )
 ```
