@@ -1,0 +1,15 @@
+,debilis,burkei,fremontii,ferrisiae,glaberrima,chrysantha,californica,coulteri,conjugens,gracilis,microglossa,platycarpha,glabrata,minor
+debilis,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+burkei,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+fremontii,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+ferrisiae,=,<,<,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+glaberrima,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+chrysantha,=,<,<,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+californica,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+coulteri,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+conjugens,=,=,=,>,=,>,=,=,NULL,NULL,NULL,NULL,NULL,NULL
+gracilis,=,=,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL
+microglossa,=,=,<,=,=,=,=,=,<,=,NULL,NULL,NULL,NULL
+platycarpha,=,=,<,=,=,=,=,=,<,=,=,NULL,NULL,NULL
+glabrata,=,=,<,=,=,=,=,=,=,=,=,=,NULL,NULL
+minor,=,<,<,=,=,=,=,=,<,=,=,=,=,NULL
