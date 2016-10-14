@@ -1,10 +1,4 @@
 ################################
-## SET SEED FOR REPRODUCIBILE ##
-################################
-
-#set.seed(07142015)
-
-################################
 ################################
 ### install missing packages ###
 ################################
@@ -12,7 +6,7 @@
 
 pkgs <- c("scales", "dplyr", "parallel", 
           "truncnorm", "geomorph", "ape", 
-          "phytools", "OUwie", "rstan"
+          "phytools", "OUwie", "rstan", "purrr"
           )
 
 needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
@@ -33,8 +27,9 @@ library(scales)
 
 #tidy
 library(dplyr)
+library(purrr)
 #library(ggplot2)
-#library(purrr)
+
 
 #other
 library(parallel)
@@ -191,10 +186,21 @@ HDI <- function(values, percent=0.95){
 
 
 #load posterior draws of all 5 parameters plus the derived maxima parameter
-load_maxima <- function()read.table(file = "derived_files/maxima_draws.txt", 
-                                      header = T)
-load_integral <- function()read.table(file = "derived_files/integral_draws.txt", 
-                                      header = T)
+load_maxima <- function(){
+  if(file.exists("derived_files/maxima_draws.txt")){
+    read.table(file = "derived_files/maxima_draws.txt", header = T)
+  } else {
+    warning("file does not exist yet. Make using generate_derived.R")
+  }
+}
+
+load_integral <- function(){
+  if(file.exists("derived_files/integral_draws.txt")){
+    read.table(file = "derived_files/integral_draws.txt", header = T)
+  } else{
+    warning("file does not exist yet. Make using generate_derived.R")
+  }
+}
 
 load_stanDat <- function(){
   stan_samples <- list.files("bayes/samples/")[grep ("tolerance_v3.samples",
@@ -209,6 +215,7 @@ load_stanDat <- function(){
 #########################################
 #Load Tree
 load_lasth <- function(){
+  set.seed(07142015)
   lasth <- read.tree("data/LastheniaBayesian.tre")
   lasth <- root(phy = lasth, outgroup = c("eriophyllum", "amblyopappus"))
   lasth$node.label <- round(as.numeric(lasth$node.label), 2)
