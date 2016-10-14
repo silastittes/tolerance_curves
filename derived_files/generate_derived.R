@@ -121,6 +121,47 @@ curveK_draws_scaled <- sapply(draw_list, function(pr){
 write.table(x = curveK_draws_scaled, file = "derived_files/curve_K_scaled.txt")
 write.table(x = curveK_draws, file = "derived_files/curve_K.txt")
 
+#################################
+##Parameter signal---------------
+#################################
+max_spp <- by(emery$Inflor_biomass, INDICES = emery$Species, FUN = max)
+max_spp <- max_spp[match(unique(emery$Species), names(max_spp))]
+
+
+#set up parameter list
+post_params <- list(integ = integraldf, optma = maximadf,
+                    c = posts$c, d = posts$d, e1 = posts$e1)
+
+par_list <- as.list(1:length(post_params))
+draw_list <- as.list(1:(ndraws)) #posterior draws as list
+
+sigData <- lapply( post_params, function(x){
+  lapply( draw_list, function(y){
+    cPar <- x[y,]
+    names(cPar) <- unique(emery[,2])
+    unlist(cPar)
+  })
+})
+
+c_scaled <- lapply( draw_list, function(y){
+  cPar <- post_params$c[y,] / max_spp
+  names(cPar) <- unique(emery[,2])
+  unlist(cPar)
+})
+
+c_scaled <- list(c_scaled = c_scaled)
+sigData_plus <- c(sigData, c_scaled)
+
+phy_sig <- lapply( as.list(1:length(sigData_plus)), function(x){
+  lapply(as.list(1:ndraws), function(y){
+    phylosig(tree = lasth, sigData_plus[[x]][[y]], method = "K", nsim = 1)
+  })
+})
+
+names(phy_sig) <- names(sigData_plus)
+
+dump(list = "phy_sig", file = "derived_files/phy_sig.R")
+
 
 ##############################################################
 ##OUwie Draws-------------------------------------------------
@@ -139,10 +180,11 @@ Reg <- c("terrestrial", "vernal", "vernal",
          "vernal", "terrestrial"
 )
 
-
 state_reg <- Reg
 names(state_reg) <- as.character(Genus_species)
 
+
+set.seed(12345)
 
 #ml est for habitat reconstruction
 regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
@@ -150,10 +192,12 @@ regFit_ml <- rerootingMethod(lasth, state_reg, model = "ER", tips = T)
 
 #number of stochastic maps of habitat
 mapsims <- 100
+par_draws <- 100
 
 #generate maps
 reg_fit <- make.simmap(tree = lasth, state_reg, model = "ER", nsim = mapsims)
-
+dump(list = "reg_fit", file = "derived_files/simmap.R")
+dump("state_reg", file = "derived_files/state_reg.R")
 
 #analyze transitions
 #tt <- 8
@@ -166,6 +210,7 @@ states <- colnames(reg_fit[[1]]$mapped.edge)
 names(states) <- c("red", "green", "blue")
 colz <- names(states)
 names(colz) <- states
+
 
 #example map
 #plotSimmap(reg_fit[[1]], colors = colz)
@@ -189,7 +234,6 @@ states_ml <- apply(regFit_ml$marginal.anc, 1, function(x) states[which.max(x)])
 anc_sims <- lapply(simstates, function(x) x[lasth$edge[,2] > 
                                               length(lasth$tip.label)])
 hab_sims <- lapply(simstates, function(x) x)
-
 #function to apply OUwie over posterior tolerance draws, 
 #and stochastic map draws
 #OUwie data frame = taxa, regime, trait value
@@ -197,10 +241,13 @@ ouwie_draws <- function(draws, df, mod, tree, sims){
   
   #process across stochastic map sims
   mapdraw <- lapply(sims, function(y){
-    #combine true tips states to stochastic map anc states
+  
+    #combine true tips states to stochastic map anc states 
     anc_states <- y[tree$edge[,2] >= length(tree$tip.label)]
     tree$node.label <- anc_states
-    tip_states <- y[tree$edge[,2] <= length(tree$tip.label)]
+    
+    #tip_states <- y[tree$edge[,2] <= length(tree$tip.label)] #sim tip state
+    tip_states <- state_reg[tree$tip.label] #true tip state
     
     #run posterior draws against each stochastic habitat reconstruction
     draws <- mclapply(X = as.list(1:draws), FUN = function(x){
@@ -237,7 +284,6 @@ ouwie_draws_ml <- function(draws, df, mod, tree, anc){
 #set up parameter list
 post_params <- list(integ = integraldf, optma = maximadf,
                     c = posts$c, d = posts$d, e1 = posts$e1)
-par_draws <- 100
 
 ### WITH maximum likelihood
 
@@ -278,69 +324,3 @@ for(x in names(post_params)){
   dump(list = "xdraw", 
        file = paste0("derived_files/", x, "_OUM_simmap.txt"))
 }
-
-
-
-#ou1_simmap_all_par <- mclapply(post_params, function(x){
-#  ouwie_draws( df = x, draws = par_draws,
-#               mod = "OU1", tree = lasth,
-#               sims = hab_sims)
-#  })
-
-
-#OUM
-#oum_simmap_all_par <- mclapply(post_params, function(x){
-#  ouwie_draws( df = x, draws = par_draws,
-#               mod = "OUM", tree = lasth,
-#               sims = hab_sims)
-#})
-
-
-#write data to files -- perserve format using dump()
-
-#dump(c("ou1_ml_all_par", "oum_ml_all_par"), 
-#     file = "derived_files/ouwie_ml_all_par.R")
-#dump(c("ou1_simmap_all_par", "oum_simmap_all_par"), 
-#     file = "derived_files/ouwie_simmap_all_par.R")
-
-#source("derived_files/ouwie_ml_all_par.R")
-#source("derived_files/ouwie_simmap_all_par.R")
-
-
-compMat <- sapply(as.list(1:14), function(x){
-  sapply(as.list(1:14), function(y){
-    #val <- mean(posts$c[,y] > posts$c[,x])
-    val <- mean(integraldf[,y] > integraldf[,x])
-    #ifelse(  y > x & (val >= 0.95 | val <= 0.05), yes = "*", no = "-")
-    if(y > x){
-      if(val >= 0.95){
-        ">"
-      } else if(val <= 0.05){
-        "<"
-      } else{
-        "-"
-      }
-    }
-  })
-})
-
-length(grep(">", compMat)) + length(grep("<", compMat))
-#c = 57
-
-rownames(compMat) <- unique(emery$Species)
-colnames(compMat) <- unique(emery$Species)
-compMat
-
-mean(maximadf[,3] > maximadf[,4])
-
-rownames(compMat) <- unique(emery$Species)
-colnames(compMat) <- unique(emery$Species)
-compMat
-
-
-#quantile(sapply(ou1_simmap_all_par$c, function(y){
-#  sapply(y, function(x) x$AICc)}))
-
-#quantile(sapply(oum_simmap_all_par$c, function(y){
-#  sapply(y, function(x) x$AICc)}))
-
