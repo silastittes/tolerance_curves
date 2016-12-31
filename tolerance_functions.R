@@ -108,6 +108,7 @@ load_emery <- function(){
   return(emery)
 }
 
+emery <- load_emery()
 
 #########################################
 #########################################
@@ -244,5 +245,4 @@ load_lasth <- function(){
   return(lasth)
 }
 
-
-
+load_lasth()

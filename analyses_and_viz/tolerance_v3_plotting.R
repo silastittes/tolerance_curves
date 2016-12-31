@@ -1,25 +1,11 @@
----
-title: "tolerance curves plotting"
-author: "Silas Tittes"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
-output:
-  pdf_document:
-    fig_caption: yes
----
-
-```{r setup}
+## ----setup---------------------------------------------------------------
 #knitr::opts_knit$set(root.dir = 
 #                       '~/Documents/Projects/tolerance-curve2/')
-```
 
-
-## Data prep
-```{r}
+## ------------------------------------------------------------------------
 source("load_data.R")
-```
 
-## Trace plots
-```{r}
+## ------------------------------------------------------------------------
 #note parameters as discussed in paper are:
   #a = alpha
   #b = beta
@@ -35,11 +21,8 @@ rstan::traceplot(stanDat, par=c("e1"))
 rstan::traceplot(stanDat, par=c("beta_0"))
 rstan::traceplot(stanDat, par=c("beta_1"))
 rstan::traceplot(stanDat, par=c("nu"))
-```
 
-
-## Raw parameter prob differences
-```{r}
+## ------------------------------------------------------------------------
 
 nspp <- length(unique(emery$Species))
 comp_par <- function(param, cut = 0.95){
@@ -83,11 +66,8 @@ for(x in 1:length(post_params)){
 
 comp_par(param = posts$e1)
 
-```
 
-
-## Plotting parameter densities
-```{r}
+## ------------------------------------------------------------------------
 
 priorDens <- list(a = NULL, b = NULL, c = NULL, 
                   d = NULL, e1 = NULL, nu = NULL, 
@@ -163,14 +143,12 @@ lapply(tden, lines)
 
 
 par(opar)
-```
 
-
-## Plotting phylogenetic signal of curves
-```{r}
+## ------------------------------------------------------------------------
 
 
 pdf("figures/signal_all.pdf")
+
 
 #load signal for each parameter
 source("derived_files/phy_sig.R")
@@ -226,12 +204,8 @@ for(i in 1:length(phy_sig)){
 #mtext(text = "K", side = 1, line = 2.2, cex = 0.7)
 
 dev.off()
-```
 
-
-
-## Parameter density visualization, colored by habitat
-```{r}
+## ------------------------------------------------------------------------
 #load habitat assignments
 source("derived_files/state_reg.R")
 
@@ -268,9 +242,9 @@ par_greek <- c("area",
 plot_par_den <- function( param, colours, param_name, added = F, ...){
   
   marr <- par()$mar
-  mm <- matrix(c(1,1,1,0,2,2), ncol = 2)
-  layout(mm, widths = c(0.8, 0.25), 
-         heights =c(1, 1, 3.5))
+  #mm <- matrix(c(1,1,1,0,2,2), ncol = 2)
+  #layout(mm, widths = c(0.8, 0.25), 
+  #       heights =c(1, 1, 3.5))
 
   den_par <- apply(param, 2, density)
   hdis <- apply(param, 2, HDI, percent = 0.95)
@@ -308,16 +282,17 @@ plot_par_den <- function( param, colours, param_name, added = F, ...){
   #      side = 3, line = 1.5)
   mtext(text = param_name, side = 1, line = 3, cex = 1.2)
   
-  par(mar = c(0,0,0,0))
-  plot(0,0, axes =F, type = "n")
-  legend("topleft", legend = names(sp_means), 
-         text.col = alpha(colz_par[names(sp_means)], 1),
-         bty = "n", cex = 1.2)
+  #par(mar = c(0,0,0,0))
+  #plot(0,0, axes =F, type = "n")
+  #legend("topleft", legend = names(sp_means), 
+  #       text.col = alpha(colz_par[names(sp_means)], 1),
+  #       bty = "n", cex = 1.2)
   #mtext(text = names(sp_means), side = 4, 
   #      at = seq(yrng[1], yrng[2], length(names(sp_means))),
   #      col = alpha(colz_par[names(sp_means)], 1),
   #      las = 1)
   par(mar = marr)
+  
 }  
 
 file_names <- sub(x = as.character(par_greek), 
@@ -325,13 +300,17 @@ file_names <- sub(x = as.character(par_greek),
 
 
 pdf(file = "figures/allparameters.pdf")
+layout(matrix(1:6, nrow = 2, byrow = F))
 par(mfrow=c(2,3))
-seq_along(par_greek) %>%  
-  lapply(function(x){
+par(mar=c(0,0,0,0))
+for(x in seq_along(par_greek)){
     #pdf(paste0("figures/", file_names[[x]],".pdf"))
     plot_par_den(param = par_names[[x]], param_name = par_greek[[x]],
                  colours = colz_par, ylab = "density", xlab = "")
-  })
+  }
+
+
+
 dev.off()
 
 pdf(file = "figures/habitat_legend.pdf")
@@ -342,12 +321,7 @@ legend("center", c("Vernal pool / terrestrial", "Terrestrial", "Vernal pool"),
 marr <- par()$mar
 dev.off()
 
-```
-
-
-
-## OUwie tables
-```{r}
+## ------------------------------------------------------------------------
 #table should consists of:
 #parameter | pr( aic_ou1 > aic_oum) | HDI+mean oum thetas | HDI+mean ou1 theta  | HDI+mean ou1 sigma 
 
@@ -465,13 +439,8 @@ print(ptab, size = "tiny",
 #"integ_OU1_simmap.txt" "integ_OUM_simmap.txt"
 #cTest <- get_ouwie_all(file_name = "derived_files/integ_OU1_simmap.txt")
 #apply(cTest, 2, HDI, percent = 0.95)[,2:4][,3]
-```
 
-
-
-
-## OUwie result visualization
-```{r}
+## ------------------------------------------------------------------------
 
 ###CHOOSE COLORS###
 #FOR OUWIE AND TREE MAP
@@ -682,13 +651,8 @@ sapply(as.list(1:3), function(x){
 
 mean(oum_sim[[1]] > oum_sim[[3]])
 
-```
 
-
-
-
-## curve plots
-```{r}
+## ------------------------------------------------------------------------
 
 colz <- topo.colors(n = 12, alpha = 1)[c(7,11,4)]
 
@@ -733,8 +697,8 @@ post_plot_draws <- lapply(sppint_list, function(sp)
                 plot.kumara(xs = xseq,
                             a = posts$a[pr,sp],
                             b = posts$b[pr,sp],
-                            c = posts$c[pr,sp],
-                            #c = posts$c[pr,sp]/sppMaxVal[sp], #alt
+                            #c = posts$c[pr,sp],
+                            c = posts$c[pr,sp]/sppMaxVal[sp], #alt
                             d = posts$d[pr,sp],
                             e1 = posts$e1[pr,sp]
                             )
@@ -745,7 +709,8 @@ names(post_plot_draws) <- unique(emery$Species)
 paramz <- as.list(c("a", "b", "c", "d", "e1"))
 mean_paramz <- lapply(paramz, function(x){
   apply(posts[[x]], 2, mean)
-  })
+  }
+)
 
 names(mean_paramz) <- paramz
 
@@ -753,8 +718,8 @@ mean_plot_draws <- lapply(sppint_list, function(sp)
                 plot.kumara(xs = xseq,
                             a = mean_paramz$a[sp],
                             b = mean_paramz$b[sp],
-                            c = mean_paramz$c[sp],
-                            #c = mean_paramz$c[sp]/sppMaxVal[sp], #alt
+                            #c = mean_paramz$c[sp],
+                            c = mean_paramz$c[sp]/sppMaxVal[sp], #alt
                             d = mean_paramz$d[sp],
                             e1 = mean_paramz$e1[sp]
                             )
@@ -766,11 +731,9 @@ names(mean_plot_draws) <- unique(emery$Species)
 
 #xr <- range(sapply(post_plot_draws, function(x) x[[1]][[1]]))*1.05
 xr <- range(sapply(mean_plot_draws, function(x) x[[1]]))*1.05
-#yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.4)
+yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.4)
 
-
-#yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.3)
-yr <- range(emery$Inflor_biomass)*c(0, 0.9)
+#yr <- range(sapply(post_plot_draws, function(x) x[[1]][[2]]))*c(0,1.2)
 #yr[2] <- ifelse( yr[2] > max(emery$Inflor_biomass), yes = yr[2], max(emery$Inflor_biomass))
 
 #plot data
@@ -841,18 +804,18 @@ for(spp in spp_list){
     subEm <- emery[emery$Species == spp, ]
   
   #OPTION 1  
-    points( jitter(subEm$treat), subEm$Inflor_biomass, 
-           pch=19, col=alpha("grey70", 0.5))
+   # points( jitter(subEm$treat), subEm$Inflor_biomass, 
+    #       pch=19, col=alpha("grey70", 0.5))
     
   #OPTION 2  
-   #points(subEm$treat, subEm$Inflor_biomass/sppMaxVal[spp],
-   #       pch=19, col=alpha("grey50", 0.5)) #alt
+   points(subEm$treat, subEm$Inflor_biomass/sppMaxVal[spp],
+         pch=19, col=alpha("grey50", 0.5)) #alt
     
     #dev.off()
 }
 
 
-axis(side = 2, cex.axis = 0.85, at = round(yr), las = 1)
+axis(side = 2, cex.axis = 0.85, at = c(0.3, 0.6, 0.9), las = 1)
 axis(side = 1, cex.axis = 0.85)
 #mtext(text = round(xr,2), 
 #      at = round(xr*0.97,2), 
@@ -869,11 +832,8 @@ axis(side = 1, cex.axis = 0.85)
 
 dev.off()
 
-```
 
-
-Plotting observed versus predicted
-```{r}
+## ------------------------------------------------------------------------
 
 meanDraws <- apply(X = posts$mu, 2, mean)
 
@@ -894,20 +854,17 @@ smth <- smooth.spline(predDF_nZero$meanDraws,
 abline(h=0, lty = 2)
 lines(smth$x, smth$y, lty=3, lwd = 2)
 
+for(i in 1:length(phy_sig)){
+  plot(density(sapply(phy_sig[[i]], function(x) x )), main = names(phy_sig)[i]) 
+}
+
 legend("topleft", c(as.character(unique(emery$Species))),
        pch = unique(as.integer(emery$Species)), 
        ncol = 2, cex =0.4)
 
 
-plot(predDF_nZero$meanDraws, sqrt((length(predDF_nZero$meanDraws))/sd(predDF_nZero$meanDraws))*(predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws)/predDF_nZero$meanDraws, ylim = c(-30, 30))
-points(predDF_Zero$meanDraws, sqrt((length(predDF_Zero$meanDraws))/sd(predDF_Zero$meanDraws))*(predDF_Zero$Inflor_biomass - predDF_Zero$meanDraws)/predDF_Zero$meanDraws)
 
-```
-
-
-
-Mean predictions versus smooth spline and mean estimate
-```{r}
+## ------------------------------------------------------------------------
 
 #meanz <- by(emery$Inflor_biomass,
 #            list(emery$treat , emery$Species), mean)
@@ -972,88 +929,4 @@ legend("topleft", unique(namez),
        pch = unique(as.integer(factor(namez))), ncol = 3, cex =0.5)
 cor(kum_pred_sort, smooth_pred_sort)
 
-```
-
-
-testing density plot idea
-```{r}
-vrnorm <- Vectorize(rnorm, "mean")
-testdf <- data.frame(vrnorm(100, mean = c(1,5,10)))
-colnames(testdf) <- c("longname1", "evenlongername2", "longestnameyet3")
-dendf <- testdf %>% lapply(density)
-
-xr <- range(sapply(dendf, function(i) range(i$x)) )
-ymx <- sapply(dendf, function(i) max(i$y))
-yr <- max(ymx)
-spacer <- 20
-rev_csum <- rev(cumsum(ymx))
-
-plot(NA,NA, ylim=c(0, yr + sum(ymx)*spacer), xlim=xr)
-seq_along(testdf) %>%
-  lapply(function(i){
-    polygon(dendf[[i]]$x, 
-            dendf[[i]]$y + rev_csum[i]*spacer, 
-            col = alpha("red", 0.3), border = F)
-    text(mean(dendf[[i]]$x), min(dendf[[i]]$y) + rev_csum[i]*spacer, colnames(testdf)[1])
-    
-  })
-
-
-plot_par_den <- function( param, colours, param_name, added = F, ...){
-  
-  mean_sort <- match(sort(apply(param, 2, mean)), apply(param, 2, mean))
-  param <- param[,mean_sort]
-  tempP_names <- spp_names[mean_sort]
-  colour2 <- alpha(colours[mean_sort], 1)
-
-  den_par <- apply(param, 2, density)
-  hdis <- apply(param, 2, HDI, percent = 0.95)
-  sp_means <- apply(param, 2, mean)
-  names(sp_means) <- spp_names
-  sp_means <- sort(sp_means)
-  
-  
-  xrng <- range(sapply(den_par, function(x) range(x$x)))
-  yrng <- range(sapply(den_par, function(x) range(x$y)))
-  
-  xr <- range(sapply(den_par, function(i) range(i$x)) )
-  ymx <- sapply(den_par, function(i) max(i$y))
-  yr <- max(ymx)
-  spacer <- spacer
-  rev_csum <- rev(cumsum(ymx))
-  
-  
-  if( !added){
-    par(mar = c(5.1,4.1,4.1,0))
-    plot(NA,NA, ylim=c(spacer, yr + sum(ymx)*spacer), xlim=xr, ...)
-  }
-  
-  text_seq <- seq(yr + sum(ymx)*spacer, spacer, length.out = length(den_par))
-  
-  for( i in 1:length(den_par)){
-    
-    lines(den_par[[i]]$x, den_par[[i]]$y + rev_csum[i]*spacer)
-    
-    text( xr[2]*0.9, 
-          text_seq[i], 
-          tempP_names[i], col = colour2[i])
-    
-    min_low_hdi <- which.min(abs(den_par[[i]]$x - hdis[1,i]))
-    min_hi_hdi <- which.min(abs(den_par[[i]]$x - hdis[2,i]))
-    
-    xden_hdi <- den_par[[i]]$x[min_low_hdi:min_hi_hdi]
-    yden_hdi <- (den_par[[i]]$y + rev_csum[i]*spacer)[min_low_hdi:min_hi_hdi]
-    
-    polygon( c(xden_hdi, rev(xden_hdi)), 
-             c(rep(0, length(yden_hdi))+rev_csum[i]*spacer, rev(yden_hdi)),
-             col = colours[i], border = F)
-  }
-}  
-
-spacer <- 0.4
-plot_par_den(param = posts$c, param_name = "alpha",
-                 colours = colz_par, ylab = "density", xlab = "")
-
-
-```
 
