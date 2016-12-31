@@ -2,7 +2,7 @@ source("tolerance_functions.R")
 #LOAD DATA
 emery <-load_emery()
 stanDat <- load_stanDat()
-posts <- extract(stanDat)
+posts <- rstan::extract(stanDat)
 ndraws <- nrow(posts$lp__)
 summs <- summary(stanDat)$summary
 lasth <- load_lasth()
