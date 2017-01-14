@@ -9,7 +9,7 @@ emery <- load_emery()
 
 prior_data <- read.xls(xls = "data/EcoLettData_PriorPredChecks.xls") %>%
   filter(Treatment == "NR")
-
+stan()
 
 ## simulate parameters and data ----------------------------
 nSpp <- length(unique(emery$Species))
