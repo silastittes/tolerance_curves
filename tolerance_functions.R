@@ -6,7 +6,8 @@
 
 pkgs <- c("scales", "dplyr", "parallel", 
           "truncnorm", "geomorph", "ape", 
-          "phytools", "OUwie", "rstan", "purrr"
+          "phytools", "OUwie", "rstan", "purrr",
+          "TeachingDemos"
           )
 
 needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
