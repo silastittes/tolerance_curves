@@ -42,7 +42,6 @@ for (z in 1:simreps) {
   e[c(3, 4)] <- rtruncnorm(n = 1, mean = max(x_o)+7, sd = 2, a = max(x_o))
   e1 <- e - d
 
-  
 
   beta_0 <- rnorm(nSpp, mean = -5, sd = 0.2)
   beta_1 <- rtruncnorm(nSpp, mean = -0.1, sd = 0.2, b = 0)
