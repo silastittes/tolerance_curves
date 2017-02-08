@@ -4,12 +4,12 @@ burkei,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 fremontii,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 ferrisiae,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 glaberrima,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-chrysantha,=,>,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+chrysantha,=,0.0135,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 californica,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 coulteri,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-conjugens,=,=,=,=,=,<,=,=,NULL,NULL,NULL,NULL,NULL,NULL
-gracilis,=,=,=,=,=,<,=,=,=,NULL,NULL,NULL,NULL,NULL
-microglossa,=,>,=,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL
+conjugens,=,=,=,=,=,0.962,=,=,NULL,NULL,NULL,NULL,NULL,NULL
+gracilis,=,=,=,=,=,0.96425,=,=,=,NULL,NULL,NULL,NULL,NULL
+microglossa,=,0.02525,=,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL
 platycarpha,=,=,=,=,=,=,=,=,=,=,=,NULL,NULL,NULL
 glabrata,=,=,=,=,=,=,=,=,=,=,=,=,NULL,NULL
 minor,=,=,=,=,=,=,=,=,=,=,=,=,=,NULL

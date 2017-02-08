@@ -8,11 +8,11 @@ output:
 ---
 
 ```{r setup}
-#knitr::opts_knit$set(root.dir = 
-#                       '~/Documents/Projects/tolerance-curve2/')
+knitr::opts_knit$set(root.dir = 
+                      '~/Documents/Projects/tolerance-curve2/')
 ```
 
-
+sim_params3
   ## Data prep
 ```{r}
 source("load_data.R")
@@ -54,9 +54,11 @@ comp_par <- function(param, cut = 0.95){
       if(x < y){
         test <- mean(param[,x] > param[,y])
         if(test >= high){
-          "<"
+          #"<"
+          test
         } else if(test <= low) {
-          ">"
+          #">"
+          test
         } else {
           "="
         }
@@ -70,7 +72,8 @@ comp_par <- function(param, cut = 0.95){
 
 #set up parameter list
 post_params <- list(integ = integraldf, optma = maximadf,
-                    c = posts$c, d = posts$d, e1 = posts$e1)
+                    c = posts$c, d = posts$d, e1 = posts$e1, 
+                    e1_d = posts$e1 +  posts$d, c_e = posts$c/posts$e1)
 
 for(x in 1:length(post_params)){
   fname <- names(post_params)[x]
@@ -973,7 +976,7 @@ cor(kum_pred_sort, smooth_pred_sort)
 ```
 
 
-testing density plot idea
+#testing density plot idea
 ```{r}
 
 library(TeachingDemos)
