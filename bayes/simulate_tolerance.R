@@ -293,7 +293,7 @@ source("bayes/simulate100.R")
 source("bayes/simulate100_prop_zero.R")
 watch[-9]
 
-
+library(tidyverse)
 1:8 %>% sapply( function(x) mean(cred_mat[1,x,]))
 1:8 %>% sapply( function(x) mean(cred_mat[2,x,]))
 1:8 %>% sapply( function(x) mean(cred_mat[3,x,]))
