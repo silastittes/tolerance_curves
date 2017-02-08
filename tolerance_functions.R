@@ -230,6 +230,7 @@ load_lasth <- function(){
   holoAdd <- which(lasth$tip.label =="sect.Hologymne")
   newtips <- c("coulteri", "glabrata", "ferrisiae", "chrysantha")
   
+  
   addbr <- 0.0001
   addtree <- rtree(n = length(newtips), rooted = T, 
                    tip.label = newtips, 
@@ -245,5 +246,7 @@ load_lasth <- function(){
   lasth <- chronos(lasth, lambda = 1)
   return(lasth)
 }
+
+?ape::chronos
 
 load_lasth()
