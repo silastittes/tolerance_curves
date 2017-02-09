@@ -1,4 +1,4 @@
-,debilis,burkei,fremontii,ferrisiae,glaberrima,chrysantha,californica,coulteri,conjugens,gracilis,microglossa,platycarpha,glabrata,minor
+,debilis,burkei,fremontii,ferrisiae,glaberrima,chrysantha,californica,coulteri,gracilis,conjugens,microglossa,platycarpha,glabrata,minor
 debilis,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 burkei,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 fremontii,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
@@ -7,8 +7,8 @@ glaberrima,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 chrysantha,=,0.96625,0.99325,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 californica,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
 coulteri,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL,NULL,NULL
-conjugens,=,=,=,0.02925,=,0.01675,=,=,NULL,NULL,NULL,NULL,NULL,NULL
-gracilis,=,=,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL
+gracilis,=,=,=,0.02925,=,0.01675,=,=,NULL,NULL,NULL,NULL,NULL,NULL
+conjugens,=,=,=,=,=,=,=,=,=,NULL,NULL,NULL,NULL,NULL
 microglossa,=,=,0.97075,=,=,=,=,=,0.964,=,NULL,NULL,NULL,NULL
 platycarpha,=,=,0.96575,=,=,=,=,=,0.951,=,=,NULL,NULL,NULL
 glabrata,=,=,=,=,=,=,=,=,=,=,=,=,NULL,NULL
