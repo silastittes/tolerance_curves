@@ -7,7 +7,7 @@
 pkgs <- c("scales", "dplyr", "parallel", 
           "truncnorm", "geomorph", "ape", 
           "phytools", "OUwie", "rstan", "purrr",
-          "TeachingDemos"
+          "TeachingDemos", "gdata"
           )
 
 needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
@@ -40,6 +40,8 @@ library(parallel)
 #library(dtw) 
 #library(GPfit)
 library(truncnorm)
+library(gdata) #read.xls
+
 
 #phylo comp tools
 library(geomorph)
@@ -72,34 +74,20 @@ opar$page <- NULL
 ####################
 ####################
 
+
 load_emery <- function(){
-  emery <- read.csv("data/NEmeryData.csv", header=T)
-  emery <- emery[is.na(emery$Inflor_biomass) == 0,]
   
-  ###DELETE THIS###
-  #emery <- emery[emery$Inflor_biomass != 0,]
+  emery <- read.xls("data/Inundation_compiled_FINAL.xlsx") %>%
+    mutate(Inflor_biomass = ifelse( is.na(Inflor_biomass) & 
+                                      ifEmerge.Y.N. == 1, yes =  0, 
+                                    no = Inflor_biomass)) %>%
+    mutate(treat = ifelse(Treatment == "F", yes = 5, 
+                          no = ifelse(Treatment == "MF", yes = 4, 
+                                      no = ifelse(Treatment == "B", yes = 3, 
+                                                  no = ifelse(Treatment == "MD", yes = 2, 
+                                                              no = 1))))) %>%
+    filter(!is.na(Inflor_biomass))
   
-  emery$treat <- rep(NA, nrow(emery))
-  
-  #make new column with treatments quant instead of nominal
-  for(i in 1:nrow(emery)){
-    if( emery$Treatment[i] == "F"){
-      emery$treat[i]  <- 5
-    } else if(emery$Treatment[i] == "MF"){
-      emery$treat[i]  <- 4
-    } else if(emery$Treatment[i] == "B"){
-      emery$treat[i]  <- 3
-    } else if (emery$Treatment[i] == "MD"){
-      emery$treat[i]  <- 2
-    } else if (emery$Treatment[i] == "D"){
-      emery$treat[i]  <- 1
-    } else {
-      emery$treat[i]  <- NA
-    }
-  }
-  
-  #make another new column with species as integers instead of nominal 
-  #for stan
   species <- unique(emery$Species)
   sppint <- 1:length(species)
   emery$sppint <- rep(NA, nrow(emery))
@@ -108,8 +96,6 @@ load_emery <- function(){
   }
   return(emery)
 }
-
-emery <- load_emery()
 
 #########################################
 #########################################
