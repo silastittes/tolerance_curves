@@ -1,0 +1,274 @@
+@font-face {
+	font-family: 'ProximaNovaLight';
+	src: url('font-face/proximanova-light-webfont.eot');
+	src: url('font-face/proximanova-light-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/proximanova-light-webfont.woff') format('woff'),
+		url('font-face/proximanova-light-webfont.ttf') format('truetype'),
+		url('font-face/proximanova-light-webfont.svg#ProximaNovaLight') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'ProximaNovaRegular';
+	src: url('font-face/proximanova-regular-webfont.eot');
+	src: url('font-face/proximanova-regular-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/proximanova-regular-webfont.woff') format('woff'),
+		url('font-face/proximanova-regular-webfont.ttf') format('truetype'),
+		url('font-face/proximanova-regular-webfont.svg#ProximaNovaRegular') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Minion';
+	src: url('font-face/minion-bolditalic-webfont.eot');
+	src: url('font-face/minion-bolditalic-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/minion-bolditalic-webfont.woff') format('woff'),
+		url('font-face/minion-bolditalic-webfont.ttf') format('truetype'),
+		url('font-face/minion-bolditalic-webfont.svg#MinionBoldItalic') format('svg');
+	font-weight: bold;
+	font-style: italic;
+}
+
+@font-face {
+	font-family: 'Minion';
+	src: url('font-face/minion-italic-webfont.eot');
+	src: url('font-face/minion-italic-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/minion-italic-webfont.woff') format('woff'),
+		url('font-face/minion-italic-webfont.ttf') format('truetype'),
+		url('font-face/minion-italic-webfont.svg#MinionItalic') format('svg');
+	font-weight: normal;
+	font-style: italic;
+}
+
+@font-face {
+	font-family: 'Minion';
+	src: url('font-face/minion-regular-webfont.eot');
+	src: url('font-face/minion-regular-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/minion-regular-webfont.woff') format('woff'),
+		url('font-face/minion-regular-webfont.ttf') format('truetype'),
+		url('font-face/minion-regular-webfont.svg#MinionRegular') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Minion';
+	src: url('font-face/minion-bold-webfont.eot');
+	src: url('font-face/minion-bold-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/minion-bold-webfont.woff') format('woff'),
+		url('font-face/minion-bold-webfont.ttf') format('truetype'),
+		url('font-face/minion-bold-webfont.svg#MinionBold') format('svg');
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'AlternateGothic2BTRegular';
+	src: url('font-face/alternate-webfont.eot');
+	src: url('font-face/alternate-webfont.eot?#iefix') format('embedded-opentype'),
+		url('font-face/alternate-webfont.woff') format('woff'),
+		url('font-face/alternate-webfont.ttf') format('truetype'),
+		url('font-face/alternate-webfont.svg#AlternateGothic2BTRegular') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@geberal-color: #353434;
+@general-border-bottom: 1px solid #cdcdcd;
+@general-indent: 15px;
+@col-3-width: 26.66666666666667%;
+@col-3-margin-right: 10%;
+
+body {
+	padding: 0;
+	margin: 0;
+}
+
+h1 {
+    font-size: 30px;
+    line-height: 36px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    margin: 0;
+	text-rendering: optimizelegibility;
+}
+
+.wrap-font-size-normal {
+	font-size: 18px;
+	line-height: 27px;
+}
+
+.wrap-font-size-big {
+	font-size: 22px;
+	line-height: 30px;
+}
+
+.right {
+	float: right;
+}
+
+.clear {
+	clear: both;
+}
+
+.block {
+	display: block;
+}
+
+.auto-overflow {
+	overflow: auto;
+}
+
+p {
+	margin: 2px 0;
+	font-size: 16px;
+	line-height: 22px;
+	&.total {
+		.wrap-font-size-normal;
+	}
+	&.subtotal {
+		.wrap-font-size-big;
+	}
+
+}
+
+img {
+	float: left;
+	margin-right: 15px;
+}
+
+.print-view {
+    color: @geberal-color;
+    font-family: ProximaNovaRegular,sans-serif;
+}
+
+#header, #footer {
+    background: none repeat scroll 0 0 #F0F0F0;
+}
+
+#footer {
+	font-size: 13px;
+	line-height: 18px;
+	a {
+		color: @geberal-color;
+		text-decoration: none;
+		&:hover {
+			text-decoration: none;
+		}
+	}
+	.field-row {
+		border-bottom: none;
+	}
+}
+
+#header {
+    height: auto;
+    padding: 10px 0;
+	.field-row {
+		border-bottom: none;
+		padding: 0;
+	}
+	p {
+		line-height: normal;
+	}
+}
+
+.field-row {
+	width: 960px;
+	margin: 0 auto;
+	border-bottom: @general-border-bottom;
+	padding: @general-indent 0;
+	overflow: auto;
+	&.res-title {
+		padding-top: 0;
+	}
+	&.last-row {
+		border-bottom: none;
+	}
+}
+
+.center {
+	text-align: center;
+}
+
+.uppercase {
+	text-transform: uppercase;
+}
+
+.capitalize {
+	text-transform: capitalize;
+}
+
+.title {
+	.wrap-font-size-normal;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+#main {
+	padding: 20px 0;
+	.res-title {
+		h2 {
+			font-size: 28px;
+			line-height: 36px;
+			font-family: 'Minion',Arial,Helvetica,sans-serif;
+			font-style: italic;
+		}
+		h3 {
+			.title;
+		}
+	}
+}
+
+.hotel {
+	.title {
+		margin-bottom: 0;
+	}
+}
+
+.total {
+	margin-top: @general-indent;
+}
+
+.suppress-note {
+	font-size: 10px;
+	position: absolute;
+	right: 10px; top: 26px;
+}
+
+.suppress {
+	color: #000000;
+	font-size: 14px;
+	vertical-align: top; 
+	line-height: 14px;
+}
+
+.guest {
+	margin-bottom: 12px;
+}
+
+.column {
+	width: @col-3-width;
+	margin-right: @col-3-margin-right;
+	float: left;
+	&.last-column {
+		margin-right: 0;
+	}
+}
+
+@media print {
+	#header {
+		.center {
+			text-align: left;
+		}
+	}
+	.field-row {
+		&.last-row {
+			border-bottom: @general-border-bottom;
+		}
+	}
+}

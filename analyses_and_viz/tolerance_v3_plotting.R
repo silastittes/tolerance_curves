@@ -1,3 +1,6 @@
+#DO NOT USE
+#older than the tolerance_v3_plotting.Rmd
+
 ## ----setup---------------------------------------------------------------
 #knitr::opts_knit$set(root.dir = 
 #                       '~/Documents/Projects/tolerance-curve2/')

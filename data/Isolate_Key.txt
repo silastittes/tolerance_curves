@@ -1,0 +1,129 @@
+51	isolate	frem01	1	Lasthenia	fremontii		
+38	isolate	plat02	2	Lasthenia	platycarpha		
+73	isolate	ferr04	4	Lasthenia	ferrisiae		
+64	isolate	glbb05	5	Lasthenia	glaberrima		
+41	isolate	mino06	6	Lasthenia	minor		
+92	isolate	macm08	8	Lasthenia	californica	subsp.	macrantha
+55	isolate	conj09	9	Lasthenia	conjugens		
+37	isolate	plat10	10	Lasthenia	platycarpha		
+50	isolate	frem13	13	Lasthenia	fremontii		
+63	isolate	glbb15	15	Lasthenia	glaberrima		
+76	isolate	chry16	16	Lasthenia	chrysantha		
+49	isolate	frem17	17	Lasthenia	fremontii		
+72	isolate	ferr18	18	Lasthenia	ferrisiae		
+54	isolate	conj19	19	Lasthenia	conjugens		
+43	isolate	mari29	20	Lasthenia	maritima		
+58	isolate	burk20	20	Lasthenia	burkei		
+44	isolate	mari21	21	Lasthenia	maritima		
+85	isolate	lept22	22	Lasthenia	leptalea		
+62	isolate	glbb23	23	Lasthenia	glaberrima		
+53	isolate	conj24	24	Lasthenia	conjugens		
+71	isolate	ferr25	25	Lasthenia	ferrisiae		
+57	isolate	burk30	30	Lasthenia	burkei		
+48	isolate	coro31	31	Lasthenia	coronaria		
+35	isolate	cali32	32	Lasthenia	californica	subsp.	californica
+88	isolate	macp33	33	Lasthenia	ornduffii		
+61	isolate	kunt34	34	Lasthenia	kunthii		
+60	isolate	kunt35	35	Lasthenia	kunthii		
+70	isolate	glac36	36	Lasthenia	glabrata	subsp.	coulteri
+69	isolate	glac41	41	Lasthenia	glabrata	subsp.	coulteri
+68	isolate	glac42	42	Lasthenia	glabrata	subsp.	coulteri
+34	isolate	cali44t	44	Lasthenia	gracilis		
+84	isolate	lept46	46	Lasthenia	leptalea		
+67	isolate	glag49	49	Lasthenia	glabrata	subsp.	glabrata
+100	isolate	cali50t	50	Lasthenia	californica	subsp.	californica
+59	isolate	kunt51	51	Lasthenia	kunthii		
+79	isolate	micr52	52	Lasthenia	microglossa		
+94	isolate	macb53	53	Lasthenia	californica	subsp.	bakeri
+82	isolate	debi54	54	Lasthenia	debilis		
+81	isolate	debi55	55	Lasthenia	debilis		
+75	isolate	chry57	57	Lasthenia	chrysantha		
+33	isolate	cali58	58	Lasthenia	gracilis		
+32	isolate	cali59	59	Lasthenia	californica	subsp.	californica
+31	isolate	cali60	60	Lasthenia	gracilis		
+30	isolate	cali61	61	Lasthenia	gracilis		
+29	isolate	cali62	62	Lasthenia	gracilis		
+47	isolate	coro63	63	Lasthenia	coronaria		
+28	isolate	cali67d	67	Lasthenia	gracilis		
+27	isolate	cali70d	70	Lasthenia	californica	subsp.	californica
+26	isolate	cali71t	71	Lasthenia	gracilis		
+66	isolate	glag78	78	Lasthenia	glabrata	subsp.	glabrata
+83	isolate	lept79	79	Lasthenia	leptalea		
+91	isolate	macm80	80	Lasthenia	californica	subsp.	macrantha
+90	isolate	macm81	81	Lasthenia	californica	subsp.	macrantha
+56	isolate	burk83	83	Lasthenia	burkei		
+87	isolate	macp85	85	Lasthenia	ornduffii		
+78	isolate	micr87	87	Lasthenia	microglossa		
+25	isolate	cali88d	88	Lasthenia	gracilis		
+97	isolate	cali89t	89	L.	gracilis	103?	
+24	isolate	cali90t	90	Lasthenia	gracilis		
+80	isolate	debi91	91	Lasthenia	debilis		
+46	isolate	coro93	93	Lasthenia	coronaria		
+23	isolate	cali94t	94	Lasthenia	gracilis		
+22	isolate	cali95d	95	Lasthenia	gracilis		
+21	isolate	cali97d	97	Lasthenia	gracilis		
+20	isolate	cali98d	98	Lasthenia	californica	subsp.	californica
+19	isolate	cali99d	99	Lasthenia	gracilis		
+18	isolate	cali100d	100	Lasthenia	gracilis		
+96	isolate	cali101d	101	Lasthenia	gracilis		
+95	isolate	cali103d	103	Lasthenia	gracilis		
+17	isolate	cali105d	105	Lasthenia	californica	subsp.	californica
+16	isolate	cali106t	106	Lasthenia	californica	subsp.	californica
+15	isolate	cali107t	107	Lasthenia	gracilis		
+14	isolate	cali108d	108	Lasthenia	californica	subsp.	californica
+13	isolate	cali109d	109	Lasthenia	gracilis		
+12	isolate	cali110t	110	Lasthenia	gracilis		
+45	isolate	coro111	111	Lasthenia	coronaria		
+77	isolate	micr114	114	Lasthenia	microglossa		
+11	isolate	cali118d	118	Lasthenia	californica	subsp.	californica
+99	isolate	cali117d	118	Lasthenia	californica	subsp.	californica
+65	isolate	glag119	119	Lasthenia	glabrata	subsp.	glabrata
+98	isolate	cali121d	121	Lasthenia	californica	subsp.	californica
+40	isolate	mino123	123	Lasthenia	minor		
+10	isolate	cali125h	125	Lasthenia	californica	subsp.	californica
+9	isolate	cali126	126	Lasthenia	gracilis		
+L. lept	isolate	macp127	127	Lasthenia	ornduffii		
+39	isolate	mino128	128	Lasthenia	minor		
+42	isolate	mari129	129	Lasthenia	maritima		
+8	isolate	cali131	131	Lasthenia	gracilis		
+52	isolate	conj134	134	Lasthenia	conjugens		
+89	isolate	macm135	135	Lasthenia	californica	subsp.	macrantha
+93	isolate	macb137	137	Lasthenia	californica	subsp.	bakeri
+74	isolate	chry138	138	Lasthenia	chrysantha		
+36	isolate	plat139	139	Lasthenia	platycarpha		
+7	isolate	cali140	140	Lasthenia	gracilis		
+6	isolate	cali141	141	Lasthenia	gracilis		
+5	isolate	cali145	145	Lasthenia	gracilis		
+4	isolate	cali146	146	Lasthenia	californica	subsp.	californica
+3	isolate	cali149	149	Lasthenia	gracilis		
+2	isolate	cali153	153	Lasthenia	gracilis		
+1	isolate	cali154	154	Lasthenia	californica	subsp.	californica
+101	isolate	erioC		Eriophyllum	congdonii		
+102	isolate	amb		Amblyopappus	pusillus		
+L_burkei_Piner_Marlov_5	isolate	burkJ1		Lasthenia	burkei		
+Amblyopappus_Los_Angeles_family_1_bin_5	isolate	ambJ2		Amblyopappus	pusillus		
+3. --------	isolate						
+4. --------	isolate						
+L_glabrata_Glide_Tule_Glide_Tule_2_family_1_Bin_1	isolate	glabJ5		Lasthenia	glabrata		
+L_glaberrima_Santa_Rosa_Plains_Piner_Marlow_Family_1_Bin_1	isolate	glaberJ6		Lasthenia	glaberrima		
+L_ferrisiae_Springtown_Springtown_family_1_Bin_1	isolate	ferrJ7		Lasthenia	ferrisiae		
+L_Minor_Pt_Reyes_NS_Family_1_Bin_3	isolate	minoJ8		Lasthenia	minor		
+L_chrysantha_Arena_Arena_2_family_1_Bin_3	isolate	chrysJ9		Lasthenia	chrysantha		
+L_coronaria_riverside_family_1_Bin_5	isolate	coroJ10		Lasthenia	coronaria		
+L_platycarpha_vina_plains_vina_1_family_1_bin_1	isolate	platyJ11		Lasthenia	platycarpha		
+L_gracilis_San_Jacinto_Wildlife_WP_76_Family_1_Bin_2	isolate	gracJ12		Lasthenia	gracilis		
+L_freemontii_carrizo_plains_carrizo3_family_1_bin_1	isolate	freJ13		Lasthenia	fremontii		
+Eriophyllum_los_Angeles_family_1_bin_3	isolate	erioJ14		Eriophyllum	congdonii		
+L_californica_Jepson_Prairie_Buckfield_Family1_Bin_5	isolate	caliJ15		Lasthenia	californica		
+L_burkei_Santa_Rosa_Plains_Bravo_Toro_family_3_Bin	isolate	burkJ16		Lasthenia	burkei		
+L_Conjugens_Trav5_AFB_Trav2_family_3_Bin_3	isolate	conjJ17		Lasthenia	conjugens		
+L_conjugens_McCoys_McCoy1_family_1_Bin_3	isolate	conjJ18		Lasthenia	conjugens		
+19.--------	isolate						
+L_burkei_Santa_Rosa_Plains_Bravo_Toro_Maternal_21	isolate	burkJ20		Lasthenia	burkei		
+L_debilis_Live_Oak_Live_Oak_Maternal_46	isolate	debiJ21		Lasthenia	debilis		
+L_debilis_Live_Oak_Live_Oak_Maternal_49	isolate	debiJ22		Lasthenia	debilis		
+L_microglossa_Del_Puerto_canyon_Rd_Del_Puerto_Maternal_20	isolate	microJ23		Lasthenia	microglossa		
+L_gracilis_Table_Mountain_TMORO1_Maternal_8	isolate	gracJ24		Lasthenia	gracilis		
+L_gracilis_San_Jacinto_Wildlife_Refuge_WP_76_Maternal_12	isolate	gracJ25		Lasthenia	gracilis		
+L_californica_californica_chico_stone_Ridge_chico2_Maternal_5	isolate	caliJ26		Lasthenia	californica	subs. californica	
+L_californica_californica_chico_stone_ridege_chico_trail_Maternal_7	isolate	caliJ27		Lasthenia	californica	subs. californica	
