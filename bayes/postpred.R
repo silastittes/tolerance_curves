@@ -1,94 +1,68 @@
 #POSTERIOR PREDICTIVE CHECKS FOR LASTHENIA TOLERANCE CURVE MODEL
 source("tolerance_functions.R")
-source("load_data.R")
+#source("load_data.R")
 
-emery <- load_emery() %>% filter(Inflor_biomass != 0)
+emery <- load_emery() %>%
+  select(Species, sppint, Inflor_biomass, treat)
 
-ndraws <- nrow(posts$lp__)
-ydat <- 1:ndraws %>% mclapply(function(z){
-  nu <- posts$nu[z]
-  a <- posts$a[z,]
-  b <- posts$b[z,]
-  c <- posts$c[z,]
-  d <- posts$d[z,]
-  e1 <-posts$e1[z,]
-  beta_0 <- posts$beta_0[z,]
-  beta_1 <- posts$beta_1[z,]
+zig_draws <- read.csv("bayes/stan_par1_df.csv") #draws for zero weighted model (generative)
+
+post_pred <- 1:nrow(zig_draws) %>% map_df(~{
+#post_pred <- 1:100 %>% map_df(~{
+  draw_i <- zig_draws[.x, ]
+  zig_spp <- zig_draws$Species[.x]
+  emery_i <- emery %>% filter(Species == zig_spp)
+  
+  x <- (emery_i$treat - draw_i$d) / (draw_i$e - draw_i$d)
+  
+  mus <- stretch_kumara(x, a = draw_i$a, 
+                        b = draw_i$b, 
+                        c = draw_i$c)
+  
+  p_zero <- plogis(draw_i$beta_0 + 
+                     draw_i$beta_1 * mus)
+  
+  #pseudo <- rgamma(n = length(mus), 
+  #                 shape = draw_i$nu, 
+  #                 rate =  draw_i$nu / mus)
+  #zero <- rbinom(n = length(mus), size = 1, p_zero)
+  #pseudo[as.logical(zero)] <- 0
   
   
-  1:nrow(emery) %>% sapply(function(i){
-    x <- (emery$treat[i] - d[emery$sppint[i]]) / e1[emery$sppint[i]]
-    mus <- stretch.kumara(x, a = a[[emery$sppint[i]]], 
-                             b = b[[emery$sppint[i]]], 
-                             c = c[[emery$sppint[i]]])
-    p_zero <- plogis(beta_0[[emery$sppint[i]]] + 
-                          beta_1[[emery$sppint[i]]] * mus)
-    
-    rgamma(n = 1, shape = nu, 
-           rate = (1-p_zero) * nu / mus)
-    
-  })
+  pseudo <- rgamma(n = length(mus), shape = draw_i$nu, 
+                   rate =  (draw_i$nu * (1 - p_zero)) / mus)
+  
+  data.frame(
+    ssq_obs = sum((mus - emery_i$Inflor_biomass)^2),
+    ssq_pseudo = sum((mus - pseudo)^2),
+    Species = zig_spp
+    #pseudo = pseudo,
+    #Inflor_biomass = emery_i$Inflor_biomass,
+    #Species = zig_spp,
+    #draw = .x
+  )
+
 })
 
+mean(post_pred$ssq_obs > post_pred$ssq_pseudo)
 
-#ssq_sim <- 1:ndraws %>% lapply(function(z){
-ssq_sim <- 1:ndraws %>% sapply(function(z){
-  nu <- posts$nu[z]
-  a <- posts$a[z,]
-  b <- posts$b[z,]
-  c <- posts$c[z,]
-  d <- posts$d[z,]
-  e1 <-posts$e1[z,]
-  beta_0 <- posts$beta_0[z,]
-  beta_1 <- posts$beta_1[z,]
-  
-  squares <- 1:nrow(emery) %>% sapply(function(i){
-    x <- (emery$treat[i] - d[emery$sppint[i]]) / e1[emery$sppint[i]]
-    mus <- stretch.kumara(x, a = a[[emery$sppint[i]]], 
-                          b = b[[emery$sppint[i]]], 
-                          c = c[[emery$sppint[i]]])
-    p_zero <- plogis(beta_0[[emery$sppint[i]]] + 
-                       beta_1[[emery$sppint[i]]] * mus)
-    
-    pred <- rgamma(n = 1, shape = nu, 
-                   rate = (1-p_zero) * nu / mus)
-    
-    rbind((emery$Inflor_biomass[i] - mus)^2, (pred - mus)^2)
-  })
-  
-  apply(squares, 1, sum)
-})
+pred_spp <- post_pred %>% group_by(Species) %>%
+  summarise(lab = as.character(mean(ssq_obs > ssq_pseudo) %>% round(2)),
+            ssq_obs = ssq_obs %>% max*.75,
+            ssq_pseudo = ssq_pseudo %>% max*.75)
 
-plot(ssq_sim[1,], ssq_sim[2,], pch = ".")
-abline(0,1, lwd=2, col = "grey")
+write_csv(pred_spp, "bayes/postpred_zig1_out.csv")
 
-ggplot(data.frame(t(ssq_sim)), aes(x = X1, y = X2)) +
-  geom_hex() +
-  geom_abline(slope = 1, intercept = 0, colour = "grey") +
-  theme_bw()
+post_plot <- post_pred %>% ggplot(aes(x = ssq_obs, y = ssq_pseudo)) +
+  geom_point(alpha = 0.1, aes(colour = Species)) +
+  geom_text(data = pred_spp, label = pred_spp$lab) +
+  facet_wrap(~Species, scales = "free") +
+  geom_abline(intercept = 0, slope = 1, lty = 2, col = "blue") +
+  ylab("Posterior predictive ssq") +
+  xlab("Observed ssq") +
+  theme_minimal() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+  theme(text = element_text(size = 5))
 
-#bayesian p-value for sum of squares discrepency
-mean(ssq_sim[1,] < ssq_sim[2,])
-
-#create logical vector to remove zeros
-trt <- emery$Inflor_biomass != 0
-plot(ydat[[1]][trt], emery$Inflor_biomass[trt])
-val <- 0.5
-quant_rep_y <- sapply(ydat, function(x) quantile(x[trt], probs = val))
-hist(quant_rep_y)
-abline(v=quantile(emery$Inflor_biomass[trt], val))
-mean(quant_rep_y > quantile(emery$Inflor_biomass[trt], val))
-
-min_rep_y <- sapply(ydat, function(x) min(x[trt]))
-hist(min_rep_y)
-abline(v=min(emery$Inflor_biomass[trt]))
-mean(min_rep_y > min(emery$Inflor_biomass[trt]))
-
-max_rep_y <- sapply(ydat, function(x) max(x[trt]))
-hist(max_rep_y)
-abline(v=max(emery$Inflor_biomass[trt]))
-mean(max_rep_y > max(emery$Inflor_biomass[trt]))
-
-
-Q <- 3
-10^(-Q/10)
+ggsave("analyses_and_viz/postpred.pdf", plot = post_plot, device = "pdf")
+ggsave("analyses_and_viz/postpred.png", plot = post_plot, device = "png")

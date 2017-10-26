@@ -1,301 +1,332 @@
-#simulate data set for tolerance model
-
 #load functions and data comment once loaded to allow seed setting here
-
+setwd("~/Documents/Projects/tolerance-curve2/")
 source("tolerance_functions.R")
-emery <- load_emery()
-mod <- rstan::stan_model("bayes/tolerance_v3.stan")
 
+mod <- rstan::stan_model("bayes/tolerance_v3_alt.stan")
 
-set.seed(890567703)
-
-nsims <- 100
-#storage for credible interval
-cred_mat <- array(NA, dim = c(4, 8, nsims))
-prop_zero <- array(NA, dim = c(4, nsims))
-
-
-for(sim in 1:nsims){
-## simulate parameters and data ----------------------------
-#nSppTreat <- nobs/nSpp/ntreat
-nSppTreat <- 10
-ntreat <- 5
-nSpp <- 4
-#nobs <- 50*nSpp
-nobs <- nSpp*ntreat*nSppTreat
-x_o <- seq(1, ntreat, length.out = ntreat) #data scale
-
-simreps <- 1
-
-ydat <- matrix(NA, nrow = nobs, ncol = simreps)
-for (z in 1:simreps) {
-  nu <- rep(rgamma(1, 20, 0.2), nSpp)
-  a <- rtruncnorm(n = nSpp, mean = 4, sd = 1, a = 2)
-  b <- rtruncnorm(n = nSpp, mean = 3, sd = 1, a = 2)
-  c_hyper <- rtruncnorm(n = 1, mean = 0, sd = 2, a = 0)
-  #c <- rtruncnorm(n = nSpp, mean = c_hyper, sd = 1, a = 0)
-  c <- rep(c_hyper, nSpp) #for demonstration
-  d <- rtruncnorm(n = nSpp, mean = min(x_o), sd = 1, b = min(x_o))
-  e <- rtruncnorm(n = nSpp, mean = max(x_o), sd = 1, a = max(x_o))
+#set.seed(8905671)
+sim_tolerance <- function(
+  n_spp_treat = 10,
+  n_treat = 5,
+  n_spp = 16,
   
-  d[c(3, 4)] <- rtruncnorm(n = 1, mean = min(x_o)-4, sd = 2, b = min(x_o))
-  e[c(3, 4)] <- rtruncnorm(n = 1, mean = max(x_o)+7, sd = 2, a = max(x_o))
-  e1 <- e - d
-
-
-  beta_0 <- rnorm(nSpp, mean = -5, sd = 0.2)
-  beta_1 <- rtruncnorm(nSpp, mean = -0.1, sd = 0.2, b = 0)
+  hyper_means = list(
+    a = -1,
+    b = -1,
+    c =  0,
+    d = 0,
+    e = 0,
+    beta_0 = 0,
+    beta_1 = -2,
+    nu = 20
+    ),
+                          
+  hyper_sds = list(
+    a = 0.1, 
+    b = 0.1, 
+    c = 0.1, 
+    d = 0.1,
+    e = 0.1,
+    beta_0 = 0.01,
+    beta_1 = 0.01,
+    nu = .1
+    ),
   
-  #for illustrative purposes
-  #c[2] <- c[2]/2 #ensure plently of zeros for species 2
-  beta_0 <- rep(-5, nSpp)
-  beta_1 <- rep(-1, nSpp)
-  beta_0[c(2,4)] <- 1
-  beta_1[c(2,4)] <- -0.2
+  random_axis = F,
+  shift = 2
   
-  #tseq <- seq(0,20, length.out = 1000)
-  #plot(tseq, plogis(beta_0[2] + beta_1[2]*tseq))
-
-  #convert data scale   to supported kimurswamy scale using d and e
+){
+  
+  exp_tr <- function(x, lim, upper = T){
+    if(upper) lim + exp(-x) else lim - exp(-x)
+  }
+  
+  #n_spp_treat = 2
+  #n_treat = 20
+  #n_spp = 3
+  
+  nobs <- n_spp*n_treat*n_spp_treat
+  
+  x_o <- 1:n_spp %>% map(~seq(1, n_treat, length.out = n_treat))
+  
+  if(random_axis){
+    x_o <- 1:n_spp %>% map(~seq(1, n_treat, length.out = n_treat) + rnorm(1, 0, shift))
+  }
+  
+  
+  gen_val <- function(param_chr, lim, upper, n_spp){
+    hyper <- rnorm(n = 1, mean = 0, sd = 1)
+    #hyper_sd <- rtruncnorm(n = 1, mean = 0, sd = 1, a = 0)
+    hyper_sd <- 1
+    return(
+      exp_tr(
+        hyper_means[[param_chr]] +
+          hyper_sds[[param_chr]] *
+          rnorm(n = n_spp, mean = hyper, sd = hyper_sd),
+        lim, upper
+    ))
+  }
+  
+  a <- gen_val(param_chr = "a", lim = 1, upper = T, n_spp)
+  b <- gen_val(param_chr = "b", lim = 1, upper = T, n_spp)
+  c <- gen_val(param_chr = "c", lim = 0, upper = T, n_spp)
+  d <- x_o %>% map_dbl(~ gen_val(param_chr = "d", lim = min(.x), upper = F, n_spp = 1))
+  e <- x_o %>% map_dbl(~ gen_val(param_chr = "e", lim = max(.x), upper = T, n_spp = 1))
+  
+  beta_0_hyper <- rnorm(n = 1, mean = 0, sd = 1)
+  #beta_0_hyper_sd <- rtruncnorm(n = 1, mean = 0, sd = 1, a = 0)
+  beta_0_hyper_sd <- 1
+  beta_0 <- hyper_means$beta_0 + 
+    hyper_sds$beta_0*
+    rnorm(n = n_spp, mean = beta_0_hyper, sd = beta_0_hyper_sd)
+  
+  beta_1_hyper <- rtruncnorm(n = 1, mean = 0, sd = 1, b = 0)
+  #beta_1_hyper_sd <- rtruncnorm(n = 1, mean = 0, sd = 1, a = 0)
+  beta_1_hyper_sd <- 1
+  beta_1 <- hyper_means$beta_1 + 
+    hyper_sds$beta_1*
+    rnorm(n = n_spp, mean = beta_1_hyper, sd = beta_1_hyper_sd)
+  
+  #nu_hyper <- rtruncnorm(n = 1, mean = hyper_means$nu, sd = hyper_sds$nu, a = 0)
+  #nu_hyper_sd <- rtruncnorm(n = 1, mean = 0, sd = 1, a = 0)
+  nu_hyper <- rtruncnorm(n = 1, mean = 1, sd = 1, a = 0)
+  #nu_hyper_sd <- rtruncnorm(n = 1, mean = 0, sd = 1, a = 0)
+  nu_hyper_sd <- 1
+  nu <- rgamma(n = n_spp, shape =  nu_hyper, rate = nu_hyper_sd)
+  #convert data scale to supported kimurswamy scale using d and e
   #produce mean y values
-  x <- array(NA, c(ntreat, nSpp))
-  mus <- array(NA, dim = c(ntreat,nSpp))
-  p_zero <- array(dim = c(ntreat, nSpp))
-  for (i in 1:ntreat) {
-    x[i,] <- (x_o[i] - d) / e1
-    mus[i,] <- stretch.kumara(x[i,], a = a, b = b, c = c)
-    p_zero[i, ] <- plogis(beta_0 + beta_1 * mus[i, ])
-  }
-
+  
+  x <- 1:n_spp %>% map(~(x_o[[.x]] - d[.x]) / (e[.x] - d[.x]))
+  
+  mus <- 1:n_spp %>% map(~stretch_kumara(x[[.x]], a[.x], b[.x], c[.x]))
+  
+  p_zero <- 1:n_spp %>% map(~plogis(beta_0[.x] + beta_1[.x] * mus[[.x]]))
+                         
+  
   #generate gamma distributed variation around mean y values
-  #store data
-  dimDat <- list(treat = rep(NA, nobs), spp = rep(NA, nobs), y = rep(NA,nobs))
+  rgamma_v <- Vectorize(rgamma, "rate")
+  rbern_v <- Vectorize(rbernoulli, "p")
   
-#approximate zero gamma sampling
-  drow <- 1
-  for (i in 1:nSpp) {
-    for (j in 1:ntreat) {
-      for (k in 1:nSppTreat) {
-        dimDat$treat[drow] <- x_o[j]
-        dimDat$spp[drow] <- i
+  sim_data <- 1:n_spp %>% 
+    map_df(~{
+      #!!!
+      #.x <- 1
+      y <- rgamma_v(n = n_spp_treat, shape = nu[[.x]], rate = nu[[.x]] / mus[[.x]])
+      zer <- rbern_v(n = n_spp_treat, p = p_zero[[.x]])
+      y[zer] <- 0
+      y %>% 
+        data.frame() %>%
+        gather(key = "treat_x", value = "y") %>% 
+        mutate(treat = rep( x_o[[.x]], each = n_spp_treat),
+               spp = rep(.x, n())) #%>%
+        #select(-treat_x)
         
-        #dimDat$y[drow] <- rgamma(n = 1, shape = nu, 
-        #                         rate = (p_zero[j, i]*nu) / mus[j, i])
-        
-        dimDat$y[drow] <- rgamma(n = 1, shape = nu, 
-                                 rate = (nu) / mus[j, i])
-        
-        if(rbernoulli(n = 1, p = p_zero[j, i])){
-          dimDat$y[drow] <- 0
-        }
-        drow <- drow + 1
-      }
-    }
-  }
-  
-  #add to ydat matrix
-  ydat[,z] <- dimDat$y
-
-}
-
-#dimDat$yScale <- by(data = dimDat$y, INDICES = dimDat$spp, FUN = function(x) x/max(x))
-#dimDat$yScale <- c(dimDat$yScale$`1` , dimDat$yScale$`2`)
-#by(data = dimDat$y, INDICES = dimDat$spp, FUN = max)
-
-# bundle data for stan
-dimDat <- data.frame(dimDat)
-
-#colset <- c("blue", "black", "green", "red")
-#visualize simulated data
-#plot(jitter(dimDat$treat), dimDat$y,
-#     #col = dimDat$spp, pch = 19,
-#     col = colset, pch = 19,
-#     cex = 0.5,
-#     xlab = 'Treatment',
-#     ylab = 'Response')
-
-#smoothdata <- dimDat %>% group_by(spp) %>%
-#  do(smooth = smooth.spline(.$treat, .$y))
-
-#invisible(
-#  lapply(smoothdata$spp, 
-#         function(i) lines(smoothdata$smooth[[i]]$x, 
-#                           smoothdata$smooth[[i]]$y, col = colset[i]
-#         )
-#  )
-#)
-
-
-dataList <- list(N = length(dimDat$spp),
-               x = dimDat$treat,
-               #y = dimDat$yScale, #!!!!!!!!!! SCALED !!!!!!!!
-               y = dimDat$y,
-               numSpp = length(unique(dimDat$spp)),
-               sppint = dimDat$spp)
-
-
-# estimate parameters
-watch <- c("a", "b", "c", "d", "e1", "nu", "beta_0", "beta_1", "mu")
-stan.fit.sim <- sampling(mod,
-                     data = dataList, 
-                     iter = 500, chains = 4,
-                     pars = watch)
-
-post <- rstan::extract(stan.fit.sim)
-mu_vals <- seq(min(mus), max(mus), length.out = 100)
-
-
-cred_match <- sapply(as.list(watch[-9]), function(p){
-  sapply(as.list(1:nSpp), function(s){
-    param <- eval(parse(text = p))
-    
-    dimtest <- dim(post[[p]])
-    if( length(dimtest) > 1 ){
-      if(dimtest[2] < s){
-        NULL
-      } else {
-      qn <- quantile(post[[p]][,s], c(0.025, 0.975))
-      param[s] > qn[1] & param[s] < qn[2]  
-      } 
-    } else {
-      qn <- quantile(post[[p]], c(0.025, 0.975))
-      param[s] > qn[1] & param[s] < qn[2]  
-    }
       })
+  
+  #ggplot(sim_data, aes(x = treat, y = y, colour = factor(spp))) +
+  #  geom_point()
+  
+  return(
+    list(
+      sim_data = sim_data, 
+      a = a,
+      b = b,
+      c = c,
+      d = d,
+      e = e,
+      beta_0 = beta_0,
+      beta_1 = beta_1
+      )
+    )
+}
+
+
+stan_tolerance <- function(sim_data){
+  ## simulate parameters and data ----------------------------
+  #sim_data <- simulate_tolerance(n_spp_treat, n_treat, n_spp)
+  a <- sim_data$a
+  b <- sim_data$b
+  c <- sim_data$c
+  d <- sim_data$d
+  e <- sim_data$e
+  beta_0 <- sim_data$beta_0
+  beta_1 <- sim_data$beta_1
+  #truncate ends to exclude zero-only treatments  
+  sim_data <- sim_data$sim_data
+  sim_data <- sim_data %>% group_by(spp, treat) %>%
+    filter(sum(y > 0) > 0)
+
+  
+  min_max_df <- sim_data %>% group_by(spp) %>%
+    summarise(minx = min(treat),
+            maxx = max(treat))
+  
+  # estimate parameters
+  stan_sim <- zigs <- 0:1 %>% map(~{
+    dataList <- list(N = length(sim_data$spp),
+                     y = sim_data$y,
+                     x = sim_data$treat,
+                     minx = array(min_max_df$minx),
+                     maxx = array(min_max_df$maxx),
+                     numSpp = length(unique(sim_data$spp)),
+                     sppint = sim_data$spp,
+                     zig = .x,
+                     a_pr_mu = -1, a_pr_sig = 0.2,
+                     b_pr_mu = -1, b_pr_sig = 0.2,
+                     c_pr_mu = 0, c_pr_sig = 0.4,
+                     d_pr_mu = 0, d_pr_sig = 0.4,
+                     e_pr_mu = 0, e_pr_sig = 0.4)
+    
+    sampling(mod,
+         data = dataList, 
+         iter = 100, chains = 4, 
+         control = list(adapt_delta = 0.8, max_treedepth = 10)
+         )
+    
+    })
+  
+  post <- stan_sim %>% map(~ rstan::extract(.x))
+  
+  params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1")
+
+  par_df <- post %>% map(function(y){
+    params %>% map( ~{
+      y[[.x]] %>%
+        data.frame() %>%
+        gather("Species", x) %>%
+        set_colnames(c("Species", .x)) %>% 
+        group_by(Species) %>%
+        mutate(draw = 1:n())
+    }) %>% 
+      do.call(cbind, .) %>%
+      subset(., select=which(!duplicated(names(.)))) 
+  }) 
+  
+  par_set1 <- par_df[[1]] %>% group_by(Species) %>%
+    map_kumara(seq(0,1, length.out = 100), .)
+    
+  par_set2 <- par_df[[2]] %>% group_by(Species) %>%
+    map_kumara2(seq(0,1, length.out = 100), .)
+    
+  qq <- qqplot(par_set1$y, par_set2$y, plot.it = F)
+  corr_models <-  cor(qq$x, qq$y)
+  diff_models <- sum((qq$x - qq$y)^2) / (2*length(qq$y))
+  
+  #plot predictions of two models!
+  true_ps <- c("a", "b", "c", 
+               "d", "e", 
+               "beta_0", "beta_1")
+  #sim_data %>% group_by(spp) %>% summarise(min(y))
+  
+  prop_true <- 1:length(unique(sim_data$spp)) %>% 
+    map_df( ~ {
+      seq_along(true_ps) %>% map_dbl(function(y){
+        tp <- true_ps[y]
+        t_vals <- eval(parse(text = tp))
+        mean(t_vals[.x] > post[[2]][[tp]][,.x]) ##!!????!?!
+        }) %>% 
+        rbind() %>% 
+        data.frame()
+    })
+  
+  valid_df <- true_ps %>% map_df(~ {
+    param <- .x
+    param_true = eval(parse(text = param))
+    true_df <- data.frame(
+      param_true = eval(parse(text = param)), 
+      spp = paste0("V", 1:length(param_true)), 
+      stringsAsFactors = F
+    )
+    
+    post[[2]][[param]] %>%
+      as_tibble %>% 
+      gather("spp", "param") %>%
+      full_join(., true_df, by = "spp") %>%
+      group_by(spp) %>%
+      summarise(prop_true = mean(param_true > param),
+                cred_in = quantile(param, 0.025) < unique(param_true) & 
+                  quantile(param, 0.975) > unique(param_true)) %>%
+      ungroup() %>%
+      summarise(prop_true = mean(prop_true),
+                cred_in = mean(cred_in))
+  })
+  
+
+  prop_zero <- sim_data %>%
+    group_by(spp) %>%
+    summarise(prop_zero = mean(y == 0))
+  #print("prop zero is:")
+  #print(prop_zero)
+  
+  
+  results <- list(
+    stan_posts = post, #list of 2 model fits
+    prop_zero = prop_zero$prop_zero,
+    prop_true = prop_true,
+    corr_models = corr_models,
+    diff_models = diff_models,
+    valid_df = valid_df
+    )
+  return(results)
+}
+
+
+sim_data <- sim_tolerance(n_spp_treat = 10, n_treat = 5, n_spp = 5, random_axis = T, shift = 0.2)
+sim_data$beta_1
+plot(sim_data$sim_data$treat, sim_data$sim_data$y, col = sim_data$sim_data$spp)
+sim_data$a %>% sort
+
+n_sims <- 1
+sims_multi <- 1:n_sims %>% map(~ {
+  sim_data <- sim_tolerance(n_spp_treat = 10, n_treat = 5, n_spp = 14, random_axis = T, shift = 0)
+  sim_results <- stan_tolerance(sim_data)
+  return(list(sim_data=sim_data, sim_results=sim_results))
   })
 
+sims_multi %>% map(~.x$sim_results$valid_df)
 
-  cred_mat[1:4,1:8,sim] <- cred_match
-  prop_zero[,sim] <- by(dimDat$y, dimDat$spp, function(x) mean(x ==0))
-  print(paste("loop", sim))
-} #sim loop starts at very top of file
-
-
-dump("cred_mat", file = "bayes/simulate100.R")
-dump("prop_zero", file = "bayes/simulate100_prop_zero.R")
-
-# add line for every draw
-ndraw <- length(post$lp__)
-
-#plot(x = NULL, y = NULL, xlim = range(mus), ylim = c(0, 1),
-#     xlab = "mu", ylab = 'Pr(zero)')
-#for (i in 1:ndraw) {
-#  lines(mu_vals, plogis(post$beta_0[i] + post$beta_1[i] * mu_vals))
-#}
-# add true
-#lines(mu_vals, plogis(beta_0 + beta_1 * mu_vals), col = 'red', lwd = 3)
-
-#plot(jitter(dimDat$treat), dimDat$yScale,
-plot(jitter(dimDat$treat), dimDat$y,
-     col = dimDat$spp, pch = 19,
-     cex = 0.2,
-     type="n",
-     xlab = 'Treatment',
-     ylab = 'Response')#, xlim=range(dimDat$treat)*c(1,1.2))
-
-xseq <- seq(0,1, length.out=500)
-for(i in 1:ndraw){
-  for(j in 1:ncol(post$e1)){
-    xdat1 <- xseq*post$e1[i,j] + post$d[i,j]
-    ydat1 <- stretch.kumara(xseq, post$a[i,j], post$b[i,j], post$c[i,j])
-    
-    lines(xdat1, ydat1, col=alpha(j, 0.05))
-    
-  }
-}
-
-## ADD "TRUE" CURVES 
-for(i in 1:nSpp){
-  xdat1 <- xseq*e1[i] + d[i]
-  ydat1 <- stretch.kumara(xseq, a[i],
-                          b[i], c[i]) #!!!
-  lines(xdat1, ydat1, col="gold", lwd=2)
-}
-
-slen <- unique(dimDat$spp)
-for(i in slen){
-  subDat <- subset(dimDat, spp == i)
-  #spln <- smooth.spline(subDat$treat, subDat$yScale)
-  spln <- smooth.spline(subDat$treat, subDat$y)
-  lines(spln$x, spln$y, col = alpha("yellow", 0.8), lwd=3, lty = 3)
-}
-
-points(jitter(dimDat$treat), dimDat$y,
-       col = dimDat$spp, pch = 21, bg = "grey")
-
-plotInt <- function(param, d, value, ...){
-  
-  di <- dim(param)
-  #par_name <- deparse(substitute(param))
-  #only_name <- unlist(strsplit(x = par_name, split = "\\$"))[2]
-  #main_par <- paste(only_name, d)
-  
-  if( length(di) < 2){
-    pDen <- density(param)
-    plot(pDen, ...)
-    high <- max(pDen$y)*0.2
-    qs <- quantile(param, c(0.025, 0.5, 0.975))
-    pMean <- mean(param)
-  } else {
-    pDen <- density(param[,d])
-    plot(pDen, ...)
-    high <- max(pDen$y)*0.2
-    qs <- quantile(param[,d], c(0.025, 0.5, 0.975))
-    pMean <- mean(param[,d])
-  }
-  
-
-  segments(x0 = qs, y0 = 0, x1 = qs, y1 = high, col="red", lwd=4)
-  segments(x0 = pMean, y0 = 0, x1 = pMean, y1 = high, col="green", lwd=4)
-  
-  #mean(t_p / (p_zero[,cl]))
-  segments(x0 = value[d],
-           y0 = 0, 
-           x1 = value[d],
-           y1 = high, col="blue", lwd=4)
-  
-  legend("topleft", c("true", "95% cred int", "mean"), 
-         lwd=3, col=c("blue","red", "green"), bty="n", cex = 1)
-}
+sims_multi[[1]]$sim_data$b %>% sort
+sims_multi[[1]]$sim_results$stan_posts[[2]]$b %>% mean
 
 
-#plot all post densitites with cred int and true vals
-yy <- as.list(watch[-9])
-invisible(lapply(as.list(yy), function(y){
-  cPost <- eval(parse(text=paste("post$", y , sep = "")))
-  lapply(as.list(1:nSpp), function(x){
-    plotInt(param = cPost, d = x, value = eval(parse(text = y)), main = paste(y, x))
-  })
-}))
+sims_multi %>% map(~.x$sim_results$prop_zero)
+sims_multi %>% map_dbl(~.x$sim_results$corr_mod)
+sims_multi %>% map_dbl(~.x$sim_results$diff_models)
+
+##Below here is yuck for plotting specific cases of model. 
+
+params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
 
 
-meanDraws <- apply(X = post$mu, 2, mean)
-plot(meanDraws, ydat - meanDraws,
-     pch=as.integer(dimDat$spp))
-smth <- smooth.spline(meanDraws, ydat - meanDraws)
-lines(smth$x, smth$y)
+sim_i <- 1
+par_df <- sims_multi[[sim_i]]$sim_results$stan_posts %>% map(function(y){
+  params %>% map( ~{
+    y[[.x]] %>%
+      data.frame() %>%
+      gather("Species", x) %>%
+      set_colnames(c("Species", .x)) %>%
+      group_by(Species) %>%
+      mutate(draw = 1:n())
+  }) %>% 
+    do.call(cbind, .) %>%
+    subset(., select=which(!duplicated(names(.)))) 
+}) 
 
-by(data = dimDat$y, 
-   INDICES = list(species = dimDat$spp, trt = dimDat$treat), 
-   FUN = function(x) max(x) > 0 )
+par_set1 <- par_df[[1]] %>% group_by(Species) %>%
+  map_kumara(seq(0,1, length.out = 100), .)
 
+par_set2 <- par_df[[2]] %>% group_by(Species) %>%
+  map_kumara2(seq(0,1, length.out = 100), .) 
 
-range(dimDat$y)
-cl <- 2
-mcmc_p <- post$c[,cl]
-pp <- plogis(mean(post$beta_0[,cl]) + mean(post$beta_1[,cl])* median(dimDat$treat))
-t_p <- c[cl]
-quantile(mcmc_p, c(0.0225, 0.975))
-t_p * (1-pp)
+data_plot <- sims_multi[[sim_i]]$sim_data$sim_data %>%
+  mutate(Species = paste0("X",spp))
 
+ggplot() + 
+  geom_line(data = par_set1, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "dodgerblue") +
+  geom_line(data = par_set2, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "yellow") +
+  geom_jitter(data = data_plot, mapping = aes(x = treat, y = y), 
+              height = 0, width = 0.1, alpha = 0.5) +
+  facet_wrap(~Species, scales = "free_y") +
+  geom_smooth(data = data_plot, aes(x=treat, y=y), se = F, colour = "green") +
+  theme_minimal()
 
-source("bayes/simulate100.R")
-source("bayes/simulate100_prop_zero.R")
-watch[-9]
-
-library(tidyverse)
-1:8 %>% sapply( function(x) mean(cred_mat[1,x,]))
-1:8 %>% sapply( function(x) mean(cred_mat[2,x,]))
-1:8 %>% sapply( function(x) mean(cred_mat[3,x,]))
-1:8 %>% sapply( function(x) mean(cred_mat[4,x,]))
-apply(prop_zero, 1, mean)
