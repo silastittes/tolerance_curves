@@ -1,5 +1,3 @@
-library(tidyverse)
-library(ape)
 source("tolerance_functions.R")
 emery <- load_emery()
 tolerance_spp <- emery$Species %>% unique
