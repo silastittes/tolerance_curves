@@ -1,7 +1,6 @@
 ### Set-up
 #---------
 
-setwd("~/Documents/Projects/tolerance-curve2/")
 source("load_data.R")
 source("derived_files/lasth_100_post.R")
 
@@ -77,6 +76,7 @@ wide_params %>%
 
 mv_plgs <- wide_params %>% 
   group_by(draw) %>% 
+  filter(draw %in% c(1,2, 3)) %>%
   do({
     temp_df <- .
     trees_post %>% map_df(~{
@@ -87,7 +87,7 @@ mv_plgs <- wide_params %>%
           filter(Species %in% grad$Species) %>% 
           as.data.frame %>%
           set_rownames(.$Species) %>%
-          gls(Mean ~ c_sc + d_sc + e_sc, 
+          gls(Mean ~ c_sc + d_sc + e_sc +  maxima_sc, #keep maxima_sc? 
               data = .,
               correlation = corPagel(x, phy = mv_pgls_tree, fixed = T),
               method = "ML"
@@ -108,8 +108,10 @@ mv_plgs <- wide_params %>%
           names(aic_f) <- "AIC_full"
           names(aic_i) <- "AIC_intercept"
           intercept <- coef(mod_intercept)
+          pvals <- summary(mod_full)$tTable[,4]
+          names(pvals) <- paste0(names(pvals), "_pvals")
           names(intercept) <- "intercept_1"
-          c(coef(mod_full), intercept, aic_f, aic_i) %>% 
+          c(coef(mod_full), pvals, intercept, aic_f, aic_i) %>% 
           rbind %>% 
           cbind(., x) %>% 
           as_tibble %>% 
@@ -126,10 +128,72 @@ mv_plgs %>%
 mv_plgs_long <- mv_plgs %>% ungroup %>% 
   gather(
     param, slopes, 
-    -draw, -pagel_lambda, 
-    -`(Intercept)`, -intercept_1, 
-    -AIC_full, -AIC_intercept
+    `(Intercept)`, c_sc, d_sc, e_sc, maxima_sc
+  ) %>% 
+  gather(params, pvals,
+         `(Intercept)_pvals`,
+         c_sc_pvals,
+         d_sc_pvals,
+         e_sc_pvals,
+         maxima_sc_pvals
+         )
+
+  
+mv_plgs_long %>% 
+  group_by(pagel_lambda, params) %>%
+  summarise(q_25 = quantile(pvals, 0.25) %>% round(2),
+            q_50 = quantile(pvals, 0.5) %>% round(2),
+            q_75 = quantile(pvals, 0.75) %>% round(2),
+            harmonic = 1/mean(1/pvals),
+            geometic = prod(pvals)^(1/length(pvals)))
+
+mv_plgs_long %>% 
+  filter(pagel_lambda == 0) %>%
+  ggplot(aes(x = pvals)) +
+  facet_wrap(~ params, scales = "free_y") +
+  geom_histogram()
+  
+
+#TESTING----
+temp_df <- mv_plgs <- wide_params %>% 
+  filter(draw == 200)
+mod_full <- temp_df %>%
+  filter(Species %in% grad$Species) %>% 
+  as.data.frame %>%
+  set_rownames(.$Species) %>%
+  gls(Mean ~ c_sc + d_sc + e_sc +  maxima_sc, #keep maxima_sc? 
+      data = .,
+      correlation = corPagel(1, phy = drop.tip(trees_post[[10]], tree_miss), fixed = T),
+      method = "ML"
   )
+
+mod_intercept <- temp_df %>%
+  filter(Species %in% grad$Species) %>% 
+  as.data.frame %>%
+  set_rownames(.$Species) %>%
+  gls(Mean ~ 1, 
+      data = .,
+      correlation = corPagel(1, phy = drop.tip(trees_post[[10]], tree_miss), fixed = T),
+      method = "ML"
+  )
+
+aic_f <- AIC(mod_full)        
+aic_i <- AIC(mod_intercept)
+names(aic_f) <- "AIC_full"
+names(aic_i) <- "AIC_intercept"
+intercept <- coef(mod_intercept)
+pvals <- summary(mod_full)$tTable[,4]
+names(pvals) <- paste0(names(pvals), "_pvals")
+names(intercept) <- "intercept_1"
+c(coef(mod_full), pvals, intercept, aic_f, aic_i) %>% 
+  rbind %>% 
+  cbind(., 1) %>% 
+  as_tibble %>% 
+  rename(pagel_lambda = 1)
+
+#-------
+
+
 
 
 options(xtable.sanitize.colnames.function=identity,
@@ -144,7 +208,8 @@ mv_plgs_long %>%
   as.data.frame %>% 
   set_rownames(c("$\\zeta $", "$\\zeta$", 
                  "$\\delta $", "$\\delta$", 
-                 "$\\epsilon $", "$\\epsilon$")) %>%
+                 "$\\epsilon $", "$\\epsilon$",
+                 "$optima $", "$optima$")) %>%
   select(-parameter) %>%
   xtable(caption = "something here", digits = 3) %>% 
   print.xtable()
@@ -164,7 +229,7 @@ c("AIC_full", "AIC_intercept", "slopes")   %>%
 mean(pg_0$AIC_full < pg_1$AIC_full)
 mean(pg_0$slopes > pg_1$slopes)
 
-
+library(ggjoy)
 mv_plgs_long %>%
   select(AIC_full, AIC_intercept, pagel_lambda) %>%
   gather("model", "aic", -pagel_lambda) %>%
@@ -218,7 +283,7 @@ lasso_all %>%
   gather(variable, value) %>%
   separate(variable, c("var", "stat"), sep = "_sc\\_") %>%
   spread(var, value) %>%
-  set_colnames(c(" ", "$\\zeta$", "$\\delta$", "$\\epsilon$", "maxima")) %>%
+  set_colnames(c(" ", "$\\zeta$", "$\\delta$", "$\\epsilon$", "$optima$")) %>%
   mutate(" " = c("coefficient mean", "proportion of draws > 0")) %>%
   xtable(caption = "something here", digits = 3) %>% 
   print.xtable(include.rownames=FALSE)
