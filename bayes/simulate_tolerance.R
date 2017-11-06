@@ -1,10 +1,10 @@
 #load functions and data comment once loaded to allow seed setting here
-setwd("~/Documents/Projects/tolerance-curve2/")
+#setwd("~/Documents/Projects/tolerance-curve2/")
 source("tolerance_functions.R")
 
 mod <- rstan::stan_model("bayes/tolerance_v3_alt.stan")
 
-#set.seed(8905671)
+set.seed(8905671)
 sim_tolerance <- function(
   n_spp_treat = 10,
   n_treat = 5,
@@ -22,13 +22,13 @@ sim_tolerance <- function(
     ),
                           
   hyper_sds = list(
-    a = 0.1, 
-    b = 0.1, 
-    c = 0.1, 
-    d = 0.1,
-    e = 0.1,
-    beta_0 = 0.01,
-    beta_1 = 0.01,
+    a = 0.2, 
+    b = 0.2, 
+    c = 0.2, 
+    d = 0.2,
+    e = 0.2,
+    beta_0 = 0.1,
+    beta_1 = 0.1,
     nu = .1
     ),
   
@@ -180,7 +180,8 @@ stan_tolerance <- function(sim_data){
     sampling(mod,
          data = dataList, 
          iter = 100, chains = 4, 
-         control = list(adapt_delta = 0.8, max_treedepth = 10)
+         control = list(adapt_delta = 0.8, max_treedepth = 10),
+         seed = 123
          )
     
     })
@@ -274,7 +275,7 @@ stan_tolerance <- function(sim_data){
 sim_data <- sim_tolerance(n_spp_treat = 10, n_treat = 5, n_spp = 5, random_axis = T, shift = 0.2)
 sim_data$beta_1
 plot(sim_data$sim_data$treat, sim_data$sim_data$y, col = sim_data$sim_data$spp)
-sim_data$a %>% sort
+sim_data$d %>% sort
 
 n_sims <- 1
 sims_multi <- 1:n_sims %>% map(~ {
@@ -284,10 +285,6 @@ sims_multi <- 1:n_sims %>% map(~ {
   })
 
 sims_multi %>% map(~.x$sim_results$valid_df)
-
-sims_multi[[1]]$sim_data$b %>% sort
-sims_multi[[1]]$sim_results$stan_posts[[2]]$b %>% mean
-
 
 sims_multi %>% map(~.x$sim_results$prop_zero)
 sims_multi %>% map_dbl(~.x$sim_results$corr_mod)
