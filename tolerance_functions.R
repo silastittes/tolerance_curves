@@ -9,7 +9,7 @@ pkgs <- c("scales", "tidyverse", "parallel",
           "ape", "phytools", "rstan", 
           "gdata", "xtable", "abind",
           "glmnet", "nlme", "ggrepel",
-          "ggjoy", "rlang", "stringr"
+          "ggjoy", "rlang", "stringr", "rethinking"
           )
 
 needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
@@ -31,8 +31,6 @@ library(scales)
 #tidy
 library(tidyverse)
 library(stringr)
-summarise <- dplyr::summarise
-map <- purrr::map
 library(magrittr)
 #library(rlang)
 #library(ggjoy)
@@ -58,11 +56,17 @@ library(geomorph)
 library(phytools)
 library(nlme)
 
-#rstan
+#rstan and bayesian stuff
+library(rethinking)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 extract <- rstan::extract
+
+#overwrite to ensure right function namespace
+summarise <- dplyr::summarise
+map <- purrr::map
+
 ################################
 ################################
 ######### PAR SETTINGS #########

@@ -41,7 +41,7 @@ curve_sig <- 1:n_draws %>%
 ###############################################################
 
 
-param_names <- c("area", "d", "maxima", "e", "c", "special", "breadth")
+param_names <- c("area", "d", "maxima", "e", "c", "breadth")
 signal_df_pre <- param_names %>% map(function(var){
   1:n_draws %>% map(~{
     param_df <- draws %>% 
