@@ -1,14 +1,12 @@
-### Set-up
 #---------
 
 source("load_data.R")
 source("derived_files/lasth_100_post.R")
-
 source("derived_files/state_reg.R") #for reg_df
 draws <- read_csv("bayes/stan_par1_df.csv") #draws for penalized zero model
 
 select <- dplyr::select
-
+rename <- dplyr::rename
 gradient <- read.xls("data/Pool depths_FINAL summary_REVISED.xls", 
                      header = T, skip = 1, stringsAsFactors = F) %>%
   mutate(taxa = strsplit(X, "_") %>% map_chr(~ .x[length(.x)]),
@@ -66,17 +64,16 @@ wide_params <- wide_params %>%
     )
 
 
-wide_params %>% 
-  ggplot(aes(x = .$maxima_sc, y = .$e_sc, colour = Species)) +
-  geom_point()
+#wide_params %>% 
+#  ggplot(aes(x = .$maxima_sc, y = .$e_sc, colour = Species)) +
+#  geom_point()
 
-wide_params %>% 
-  select(Species, maxima, area, d, e, breadth) %>%
-  ggpairs(aes(colour = Species, alpha = 0.1))
+#wide_params %>% 
+#  select(Species, maxima, area, d, e, breadth) %>%
+#  ggpairs(aes(colour = Species, alpha = 0.1))
 
 mv_plgs <- wide_params %>% 
-  group_by(draw) %>% 
-  filter(draw %in% c(1,2, 3)) %>%
+  group_by(draw) %>%
   do({
     temp_df <- .
     trees_post %>% map_df(~{
@@ -125,6 +122,7 @@ mv_plgs %>%
   group_by(pagel_lambda) %>%
   summarise(mean(AIC_full < AIC_intercept))
 
+
 mv_plgs_long <- mv_plgs %>% ungroup %>% 
   gather(
     param, slopes, 
@@ -138,83 +136,65 @@ mv_plgs_long <- mv_plgs %>% ungroup %>%
          maxima_sc_pvals
          )
 
-  
 mv_plgs_long %>% 
   group_by(pagel_lambda, params) %>%
   summarise(q_25 = quantile(pvals, 0.25) %>% round(2),
             q_50 = quantile(pvals, 0.5) %>% round(2),
             q_75 = quantile(pvals, 0.75) %>% round(2),
-            harmonic = 1/mean(1/pvals),
-            geometic = prod(pvals)^(1/length(pvals)))
+            harmonic_mean = round(1/mean(1/pvals), 4)) %>%
+  arrange(params)
 
 mv_plgs_long %>% 
-  filter(pagel_lambda == 0) %>%
-  ggplot(aes(x = pvals)) +
-  facet_wrap(~ params, scales = "free_y") +
-  geom_histogram()
+  group_by(pagel_lambda, params) %>%
+  summarise(hpdi_low = HPDI(pvals, 0.95)  %>% .[1] %>% round(2),
+            q_50 = quantile(pvals, 0.5) %>% round(2),
+            hpdi_high = HPDI(pvals, 0.95)  %>% .[2] %>% round(2))
+
+pval_hm <- mv_plgs_long %>% 
+  group_by(pagel_lambda, params) %>%
+  summarise(harmonic_mean = round(1/mean(1/pvals), 5)) %>%
+  arrange(params) %>%
+  ungroup()
+
+
+#mv_plgs_long %>% 
+#  filter(pagel_lambda == 0) %>%
+#  ggplot(aes(x = pvals)) +
+#  facet_wrap(~ params, scales = "free_y") +
+#  geom_histogram() +
+#  theme_minimal()
   
-
-#TESTING----
-temp_df <- mv_plgs <- wide_params %>% 
-  filter(draw == 200)
-mod_full <- temp_df %>%
-  filter(Species %in% grad$Species) %>% 
-  as.data.frame %>%
-  set_rownames(.$Species) %>%
-  gls(Mean ~ c_sc + d_sc + e_sc +  maxima_sc, #keep maxima_sc? 
-      data = .,
-      correlation = corPagel(1, phy = drop.tip(trees_post[[10]], tree_miss), fixed = T),
-      method = "ML"
-  )
-
-mod_intercept <- temp_df %>%
-  filter(Species %in% grad$Species) %>% 
-  as.data.frame %>%
-  set_rownames(.$Species) %>%
-  gls(Mean ~ 1, 
-      data = .,
-      correlation = corPagel(1, phy = drop.tip(trees_post[[10]], tree_miss), fixed = T),
-      method = "ML"
-  )
-
-aic_f <- AIC(mod_full)        
-aic_i <- AIC(mod_intercept)
-names(aic_f) <- "AIC_full"
-names(aic_i) <- "AIC_intercept"
-intercept <- coef(mod_intercept)
-pvals <- summary(mod_full)$tTable[,4]
-names(pvals) <- paste0(names(pvals), "_pvals")
-names(intercept) <- "intercept_1"
-c(coef(mod_full), pvals, intercept, aic_f, aic_i) %>% 
-  rbind %>% 
-  cbind(., 1) %>% 
-  as_tibble %>% 
-  rename(pagel_lambda = 1)
-
-#-------
-
-
-
 
 options(xtable.sanitize.colnames.function=identity,
         xtable.sanitize.rownames.function=identity)
 
 mv_plgs_long %>% 
   group_by(param, pagel_lambda) %>%
-  summarise(means = mean(slopes),
-            prob_zero = mean(slopes > 0)) %>%
-  mutate(pagel_lambda = as.integer(pagel_lambda)) %>% 
-  set_colnames(c("parameter", "Pagel's $\\lambda$", "coefficient mean", "proportion of draws $>$ 0")) %>%
+  summarise(
+    means = mean(slopes),
+    prob_zero = mean(slopes > 0)) %>%
+  ungroup() %>%
+  mutate(
+    pagel_lambda = as.integer(pagel_lambda),
+    pval_hm = pval_hm$harmonic_mean
+    ) %>%
+  set_colnames(c(
+    "parameter", 
+    "Pagel's $\\lambda$", 
+    "coefficient mean",
+    "proportion of draws $>$ 0", 
+    "harmonic mean of p values")
+    ) %>%
   as.data.frame %>% 
+  filter(parameter != "(Intercept)") %>%
   set_rownames(c("$\\zeta $", "$\\zeta$", 
                  "$\\delta $", "$\\delta$", 
                  "$\\epsilon $", "$\\epsilon$",
                  "$optima $", "$optima$")) %>%
   select(-parameter) %>%
-  xtable(caption = "something here", digits = 3) %>% 
-  print.xtable()
+  xtable(caption = "something here", digits = 4) %>% 
+  print.xtable(file = "derived_files/pgls.tex")
 
-  
 
 #how do aic values and predictions compare for full models, but alternate pagel lambdas?
 pg_0 <- mv_plgs_long %>% 
@@ -229,17 +209,17 @@ c("AIC_full", "AIC_intercept", "slopes")   %>%
 mean(pg_0$AIC_full < pg_1$AIC_full)
 mean(pg_0$slopes > pg_1$slopes)
 
-library(ggjoy)
-mv_plgs_long %>%
-  select(AIC_full, AIC_intercept, pagel_lambda) %>%
-  gather("model", "aic", -pagel_lambda) %>%
-  mutate(pagel_lambda = paste0("λ = ", pagel_lambda),
-         model = gsub("_", " ", model)) %>%
-  ggplot(aes(x = aic, y = model)) +
-  facet_wrap(~factor(pagel_lambda), ncol = 1) +
-  geom_joy(col = "white") +
-  theme_bw() +
-  theme(text = element_text(size=16))
+#library(ggjoy)
+#mv_plgs_long %>%
+#  select(AIC_full, AIC_intercept, pagel_lambda) %>%
+#  gather("model", "aic", -pagel_lambda) %>%
+#  mutate(pagel_lambda = paste0("λ = ", pagel_lambda),
+#         model = gsub("_", " ", model)) %>%
+#  ggplot(aes(x = aic, y = model)) +
+#  facet_wrap(~factor(pagel_lambda), ncol = 1) +
+#  geom_joy(col = "white") +
+#  theme_bw() +
+#  theme(text = element_text(size=16))
 
 
 #NON PHYLOGENETIC LASSO CLASSIFICATION BY HABITAT
@@ -286,15 +266,11 @@ lasso_all %>%
   set_colnames(c(" ", "$\\zeta$", "$\\delta$", "$\\epsilon$", "$optima$")) %>%
   mutate(" " = c("coefficient mean", "proportion of draws > 0")) %>%
   xtable(caption = "something here", digits = 3) %>% 
-  print.xtable(include.rownames=FALSE)
+  print.xtable(include.rownames=FALSE, file = "derived_files/lasso.tex")
 
 
 #glm(aqua_terr2terr_bin ~  c_sc + breadth_sc, 
 #    data = test_df, family = binomial)
-
-###
-###
-###
 
 ### Phylogenetic Independent Contrasts 
 #--------------------------------------
@@ -326,14 +302,6 @@ pic_cor <- function(var1, var2){
     })
 } 
   
-#cor_c_breadth <- pic_cor("c", "breadth")
-#cor_d_breadth <- pic_cor("d", "breadth")
-#cor_e_breadth <- pic_cor("e", "breadth")
-#cor_e_maxima <- pic_cor("e", "maxima")
-#cor_d_maxima <- pic_cor("d", "maxima")
-#cor_c_maxima <- picklopioipi,,o,_cor("c", "maxima")
-#cor_c_d <- pic_cor("c", "d")
-#cor_d_e <- pic_cor("d", "e")
 
 cor_c_e <- pic_cor("c", "e")
 
@@ -342,4 +310,5 @@ cor_c_e %>%
   group_by(corr_type) %>%
   summarise(mean(corr),
             mean(corr > 0))
-hist(cor_c_e$pic_cor, breaks = 1000)
+
+hist(cor_c_e$pic_cor, breaks = 500)

@@ -4,7 +4,7 @@ source("tolerance_functions.R")
 
 mod <- rstan::stan_model("bayes/tolerance_v3_alt.stan")
 
-set.seed(8905671)
+#Function to generate data
 sim_tolerance <- function(
   n_spp_treat = 10,
   n_treat = 5,
@@ -13,11 +13,11 @@ sim_tolerance <- function(
   hyper_means = list(
     a = -1,
     b = -1,
-    c =  0,
+    c = -1,
     d = 0,
     e = 0,
     beta_0 = 0,
-    beta_1 = -2,
+    beta_1 = -1.5,
     nu = 20
     ),
                           
@@ -29,7 +29,7 @@ sim_tolerance <- function(
     e = 0.2,
     beta_0 = 0.1,
     beta_1 = 0.1,
-    nu = .1
+    nu = 0.1
     ),
   
   random_axis = F,
@@ -118,7 +118,7 @@ sim_tolerance <- function(
         data.frame() %>%
         gather(key = "treat_x", value = "y") %>% 
         mutate(treat = rep( x_o[[.x]], each = n_spp_treat),
-               spp = rep(.x, n())) #%>%
+               spp = rep(.x, nrow(.))) #%>%
         #select(-treat_x)
         
       })
@@ -135,12 +135,14 @@ sim_tolerance <- function(
       d = d,
       e = e,
       beta_0 = beta_0,
-      beta_1 = beta_1
+      beta_1 = beta_1,
+      nu = nu
       )
     )
 }
 
 
+#function to parse and fit stan to simulated data
 stan_tolerance <- function(sim_data){
   ## simulate parameters and data ----------------------------
   #sim_data <- simulate_tolerance(n_spp_treat, n_treat, n_spp)
@@ -151,6 +153,7 @@ stan_tolerance <- function(sim_data){
   e <- sim_data$e
   beta_0 <- sim_data$beta_0
   beta_1 <- sim_data$beta_1
+  nu <- sim_data$nu
   #truncate ends to exclude zero-only treatments  
   sim_data <- sim_data$sim_data
   sim_data <- sim_data %>% group_by(spp, treat) %>%
@@ -188,7 +191,7 @@ stan_tolerance <- function(sim_data){
   
   post <- stan_sim %>% map(~ rstan::extract(.x))
   
-  params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1")
+  params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
 
   par_df <- post %>% map(function(y){
     params %>% map( ~{
@@ -197,7 +200,7 @@ stan_tolerance <- function(sim_data){
         gather("Species", x) %>%
         set_colnames(c("Species", .x)) %>% 
         group_by(Species) %>%
-        mutate(draw = 1:n())
+        mutate(draw = 1:nrow(.))
     }) %>% 
       do.call(cbind, .) %>%
       subset(., select=which(!duplicated(names(.)))) 
@@ -216,7 +219,8 @@ stan_tolerance <- function(sim_data){
   #plot predictions of two models!
   true_ps <- c("a", "b", "c", 
                "d", "e", 
-               "beta_0", "beta_1")
+               "beta_0", "beta_1", 
+               "nu")
   #sim_data %>% group_by(spp) %>% summarise(min(y))
   
   prop_true <- 1:length(unique(sim_data$spp)) %>% 
@@ -272,58 +276,104 @@ stan_tolerance <- function(sim_data){
 }
 
 
-sim_data <- sim_tolerance(n_spp_treat = 10, n_treat = 5, n_spp = 5, random_axis = T, shift = 0.2)
-sim_data$beta_1
-plot(sim_data$sim_data$treat, sim_data$sim_data$y, col = sim_data$sim_data$spp)
-sim_data$d %>% sort
+#function to visualize data, fit, and gam fit
+plot_sim_out <- function(out){
+  params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
+  par_df <- out$sim_results$stan_posts %>% map(function(y){
+    params %>% map( ~{
+      y[[.x]] %>%
+        data.frame() %>%
+        gather("Species", x) %>%
+        set_colnames(c("Species", .x)) %>%
+        group_by(Species) %>%
+        mutate(draw = 1:nrow(.))
+    }) %>% 
+      do.call(cbind, .) %>%
+      subset(., select=which(!duplicated(names(.)))) 
+  }) 
+  
+  par_set1 <- par_df[[1]] %>% group_by(Species) %>%
+    map_kumara(seq(0,1, length.out = 100), .)
+  
+  par_set2 <- par_df[[2]] %>% group_by(Species) %>%
+    map_kumara2(seq(0,1, length.out = 100), .) 
+  
+  data_plot <- out$sim_data$sim_data %>%
+    mutate(Species = paste0("X",spp))
+  
+  ggplot() + 
+    geom_line(data = par_set1, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "dodgerblue") +
+    geom_line(data = par_set2, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "yellow") +
+    geom_jitter(data = data_plot, mapping = aes(x = treat, y = y), 
+                height = 0, width = 0.1, alpha = 0.5) +
+    facet_wrap(~Species, scales = "free_y") +
+    geom_smooth(data = data_plot, aes(x=treat, y=y), se = F, colour = "green") +
+    theme_minimal()
+}
 
-n_sims <- 1
-sims_multi <- 1:n_sims %>% map(~ {
-  sim_data <- sim_tolerance(n_spp_treat = 10, n_treat = 5, n_spp = 14, random_axis = T, shift = 0)
-  sim_results <- stan_tolerance(sim_data)
-  return(list(sim_data=sim_data, sim_results=sim_results))
-  })
 
-sims_multi %>% map(~.x$sim_results$valid_df)
+#produce latex table to summarize fit (using xtable)
+sim_table <- function(out){
+  options(xtable.sanitize.colnames.function=identity,
+          xtable.sanitize.rownames.function=identity)
+  
+  sim_table <- out$sim_results$valid_df %>%
+    data.frame() %>%
+    set_colnames(c(
+      "proportion simulated $>$ true parameter", 
+      "Propoortion of true parameters \n within 95\\% credible interval")
+    ) %>%
+    set_rownames(c("$\\alpha$", "$\\beta$", 
+                   "$\\zeta$", "$\\delta$", 
+                   "$\\epsilon$", "$\\beta_0$", 
+                   "$\\beta_1$", "$\\nu$")) %>%
+    xtable()
+  align( sim_table ) <- c( 'l', 'p{1.5in}', 'p{1.5in}' )
+  sim_table
+}
 
-sims_multi %>% map(~.x$sim_results$prop_zero)
-sims_multi %>% map_dbl(~.x$sim_results$corr_mod)
-sims_multi %>% map_dbl(~.x$sim_results$diff_models)
-
-##Below here is yuck for plotting specific cases of model. 
-
-params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
 
 
-sim_i <- 1
-par_df <- sims_multi[[sim_i]]$sim_results$stan_posts %>% map(function(y){
-  params %>% map( ~{
-    y[[.x]] %>%
-      data.frame() %>%
-      gather("Species", x) %>%
-      set_colnames(c("Species", .x)) %>%
-      group_by(Species) %>%
-      mutate(draw = 1:n())
-  }) %>% 
-    do.call(cbind, .) %>%
-    subset(., select=which(!duplicated(names(.)))) 
-}) 
+#fit idea data and challenging data
+set.seed(123)
+ideal_data <- sim_tolerance(
+  n_spp_treat = 10, n_treat = 5, 
+  n_spp = 14, random_axis = F, shift = 0
+  )
 
-par_set1 <- par_df[[1]] %>% group_by(Species) %>%
-  map_kumara(seq(0,1, length.out = 100), .)
+ideal_results <- stan_tolerance(ideal_data)
+ideal_out <- list(sim_data=ideal_data, sim_results=ideal_results)
 
-par_set2 <- par_df[[2]] %>% group_by(Species) %>%
-  map_kumara2(seq(0,1, length.out = 100), .) 
+challenge_data <- sim_tolerance(
+  n_spp_treat = 10, n_treat = 5, 
+  n_spp = 14, random_axis = F, shift = 0,
+  hyper_sds = list(
+    a = 1, 
+    b = 1, 
+    c = 1, 
+    d = 1,
+    e = 1,
+    beta_0 = 0.5,
+    beta_1 = 0.5,
+    nu = 1
+    )
+  )
 
-data_plot <- sims_multi[[sim_i]]$sim_data$sim_data %>%
-  mutate(Species = paste0("X",spp))
+challenge_results <- stan_tolerance(challenge_data)
+challenge_out <- list(sim_data=challenge_data, sim_results=challenge_results)
 
-ggplot() + 
-  geom_line(data = par_set1, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "dodgerblue") +
-  geom_line(data = par_set2, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "yellow") +
-  geom_jitter(data = data_plot, mapping = aes(x = treat, y = y), 
-              height = 0, width = 0.1, alpha = 0.5) +
-  facet_wrap(~Species, scales = "free_y") +
-  geom_smooth(data = data_plot, aes(x=treat, y=y), se = F, colour = "green") +
-  theme_minimal()
 
+sim_table(ideal_out)
+sim_table(challenge_out)
+
+
+ideal_out$sim_results$prop_zero
+ideal_out$sim_results$corr_models
+ideal_out$sim_results$diff_models
+
+challenge_out$sim_results$prop_zero
+challenge_out$sim_results$corr_models
+challenge_out$sim_results$diff_models
+
+plot_sim_out(ideal_out)
+plot_sim_out(challenge_out)
