@@ -4,7 +4,8 @@ all: 	figures/fig1.pdf \
 	figures/fig2.pdf \
 	derived_files/curve_K.csv \
 	figures/fig3.pdf \
-	derived_files/pgls.tex
+	derived_files/pgls.tex \
+	figures/A2.pdf
 
 	
 #make concept plot
@@ -34,4 +35,7 @@ figures/fig3.pdf: bayes/samples/tolerance_v3_*.csv derived_files/curve_K.csv tol
 
 derived_files/pgls.tex: moisture_pic.R bayes/samples/tolerance_v3_*.csv
 	        Rscript moisture_pic.R
+
+figures/A2.pdf: bayes/tolerance_v3_alt.stan tolerance_functions.R bayes/simulate_tolerance.R
+	Rscript bayes/simulate_tolerance.R
 

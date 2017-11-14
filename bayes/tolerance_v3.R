@@ -51,6 +51,7 @@ new_post <- stan_out %>% map(~extract(.x))
 
 params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
 
+
 par_df <- new_post %>% map(function(y){
   params %>% map( ~{
     y[[.x]] %>%
@@ -62,7 +63,8 @@ par_df <- new_post %>% map(function(y){
       mutate(draw = 1:n())
   }) %>% 
     do.call(cbind, .) %>%
-    subset(., select = which(!duplicated(names(.)))) %>%
+    select(-starts_with("Species")) %>%
+    select(-matches("draw[0-9]")) %>%
     mutate(
       maxima = (((a - 1)/(a*b - 1))^(1/a) * (e - d) + d),
       breadth = (e-d),
