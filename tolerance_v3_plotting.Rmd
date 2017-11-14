@@ -223,7 +223,6 @@ plot_concept <- function(){
   
 }
 
-
 source("derived_files/state_reg.R")
 #set habitat colors
 colz <- topo.colors(n = 12, alpha = 0.7)[c(11,4)]
@@ -239,16 +238,17 @@ pdf("figures/fig4.pdf")
 #png(filename = "figures/fig4_curves.png")
 
 cnc <- 1
-ml <- rbind(c(0, 0, 0, 0, 0),
-            c(0, 1, 1, 1, 0),
-            c(0, 1, 1, 1, 0),
-            c(0, 1, 1, 1, 0),
+ml <- rbind(c(0, 0, 0, 0, 0, 0),
+            c(0, 1, 1, 1, 0, 0),
+            c(0, 1, 1, 1, 0, 0),
+            c(0, 1, 1, 1, 0, 0),
             cbind(rep(2,length(spp_list)),
             matrix(seq_along(spp_list)+1+cnc), 
             matrix(seq_along(spp_list)+length(spp_list)+1+cnc),
             matrix(seq_along(spp_list)+2*length(spp_list)+1+cnc),
-            matrix(seq_along(spp_list)+3*length(spp_list)+1+cnc)),
-            rep(0, 5), rep(0, 5))
+            matrix(seq_along(spp_list)+3*length(spp_list)+1+cnc),
+            matrix(seq_along(spp_list)+4*length(spp_list)+1+cnc)),
+            rep(0, 6), rep(0, 6))
 
 layout(ml)
 
@@ -258,8 +258,8 @@ par(mar = c(0,0,0,0))
 
 plot.phylo(lasth, edge.width = 2, show.tip.label = F)
 
-post_params <- c("d", "maxima", "e", "breadth")
-greek_params <- c(expression(delta), "maxima", expression(epsilon), "breadth")
+post_params <- c("d", "maxima", "e", "c")
+greek_params <- c(expression(delta), "maxima", expression(epsilon), expression(zeta))
 
 
 seq_along(post_params) %>% map(function(x){
@@ -284,19 +284,55 @@ seq_along(spp_list) %>% map(~{
       xlim = c(den_range$xl_min, den_range$xh_max),
       ylim = c(0, den_range$yh_max),
       axes = F, type = "n")
- 
  polygon(spp_den$x, spp_den$y, col = colz_par[spp_list[.x]], border  = T)
- 
  if(var == "d") legend("left", spp_list[.x], bty = "n", cex = 0.8)
- 
  })
 axis(1)
-mtext(greek_params[x], side = 1, line = 2)
-
+mtext(greek_params[x], side = 1, line = 3)
 }) %>% invisible
 
-dev.off()
 
+select <- dplyr::select
+rename <- dplyr::rename
+gradient <- read.xls("data/Pool depths_FINAL summary_REVISED.xls", 
+                     header = T, skip = 1, stringsAsFactors = F) %>%
+  mutate(taxa = strsplit(X, "_") %>% map_chr(~ .x[length(.x)]),
+         taxa = ifelse(taxa == "deblilis", "debilis", taxa)) %>% 
+  filter(taxa %in% as.character(unique(emery$Species)))
+
+
+limz <- gradient %>%
+  rowwise() %>%
+  summarise(high = Mean + SE,
+            low = Mean - SE) %>%
+  summarise(maxy = max(high, na.rm = T)*1.1,
+            miny = min(low, na.rm = T)*1.1)
+
+spp_list %>%
+  map(~{
+    row_i <- gradient %>% filter(taxa == .x)
+    par(mar = c(0,0,0,0))
+    plot(
+      NA, NA, 
+      ylim =c(-0.1, 0.5),
+      xlim = c(limz$miny, limz$maxy),
+      axes = F, bty = "n")
+    segments(
+      y0 = 0,
+      y1 = 0,
+      x0 = row_i$Mean - row_i$SE, 
+      x1 = row_i$Mean + row_i$SE,
+      lwd = 1
+      )
+    points(row_i$Mean, 0, pch = 19)
+    #text(0.3, limz$maxy, row_i$taxa)
+    if(.x == "minor"){
+      axis(1, cex.axis = 0.85)
+      mtext(side = 1, "depth", line = 3, cex = 0.85)              
+      }
+  })
+
+dev.off()
 
 
 ```
@@ -489,7 +525,6 @@ axis(side = 2, cex.axis = 0.85, at = round(yrng), las = 1)
 axis(side = 1, cex.axis = 0.85)
 
 dev.off()
-#dev.off()
 
 ```
 

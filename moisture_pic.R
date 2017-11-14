@@ -7,6 +7,7 @@ draws <- read_csv("bayes/stan_par1_df.csv") #draws for penalized zero model
 
 select <- dplyr::select
 rename <- dplyr::rename
+
 gradient <- read.xls("data/Pool depths_FINAL summary_REVISED.xls", 
                      header = T, skip = 1, stringsAsFactors = F) %>%
   mutate(taxa = strsplit(X, "_") %>% map_chr(~ .x[length(.x)]),
@@ -49,7 +50,7 @@ wide_params <- full_join(x = draws, y = grad, by = "Species") %>%
   full_join(., reg_df, by = "Species")
 
 wide_params <- wide_params %>%
-  select(-Species, -draw, -Mean, -habit, -aqua_terr2terr, -aqua_terr2vernal) %>% 
+  select(-c(Species, draw, Mean, habit, aqua_terr2terr, aqua_terr2vernal)) %>% 
   scale %>% 
   as_tibble %>%
   set_colnames( paste0(names(.), "_sc" )) %>%

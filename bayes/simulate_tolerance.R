@@ -200,7 +200,7 @@ stan_tolerance <- function(sim_data){
         gather("Species", x) %>%
         set_colnames(c("Species", .x)) %>% 
         group_by(Species) %>%
-        mutate(draw = 1:nrow(.))
+        mutate(draw = 1:n())
     }) %>% 
       do.call(cbind, .) %>%
       subset(., select=which(!duplicated(names(.)))) 
@@ -286,7 +286,7 @@ plot_sim_out <- function(out){
         gather("Species", x) %>%
         set_colnames(c("Species", .x)) %>%
         group_by(Species) %>%
-        mutate(draw = 1:nrow(.))
+        mutate(draw = 1:n())
     }) %>% 
       do.call(cbind, .) %>%
       subset(., select=which(!duplicated(names(.)))) 
@@ -313,7 +313,7 @@ plot_sim_out <- function(out){
 
 
 #produce latex table to summarize fit (using xtable)
-sim_table <- function(out){
+sim_table <- function(out, file_name){
   options(xtable.sanitize.colnames.function=identity,
           xtable.sanitize.rownames.function=identity)
   
@@ -329,7 +329,7 @@ sim_table <- function(out){
                    "$\\beta_1$", "$\\nu$")) %>%
     xtable()
   align( sim_table ) <- c( 'l', 'p{1.5in}', 'p{1.5in}' )
-  sim_table
+  print.xtable(x = sim_table, file = file_name)
 }
 
 
@@ -363,8 +363,8 @@ challenge_results <- stan_tolerance(challenge_data)
 challenge_out <- list(sim_data=challenge_data, sim_results=challenge_results)
 
 
-sim_table(ideal_out)
-sim_table(challenge_out)
+sim_table(ideal_out, "derived_files/idea_simtable.tex")
+sim_table(challenge_out, "derived_files/idea_challengetable.tex")
 
 
 ideal_out$sim_results$prop_zero
@@ -375,5 +375,10 @@ challenge_out$sim_results$prop_zero
 challenge_out$sim_results$corr_models
 challenge_out$sim_results$diff_models
 
+cairo_pdf(filename = "figures/A1.pdf")
 plot_sim_out(ideal_out)
+dev.off()
+
+cairo_pdf(filename = "figures/A2.pdf")
 plot_sim_out(challenge_out)
+dev.off()
