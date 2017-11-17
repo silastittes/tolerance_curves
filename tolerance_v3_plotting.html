@@ -120,7 +120,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">tolerance curves plotting</h1>
 <h4 class="author"><em>Silas Tittes</em></h4>
-<h4 class="date"><em>13 November, 2017</em></h4>
+<h4 class="date"><em>15 November, 2017</em></h4>
 
 </div>
 
@@ -229,8 +229,8 @@ $(document).ready(function () {
 <pre><code>## 
 ## Setting initial dates...
 ## Fitting in progress... get a first set of estimates
-##          Penalised log-lik = -1.891166 
-## Optimising rates... dates... -1.891166 
+##          Penalised log-lik = -1.900983 
+## Optimising rates... dates... -1.900983 
 ## 
 ## Done.</code></pre>
 <pre class="r"><code>draws &lt;- read_csv(&quot;bayes/stan_par1_df.csv&quot;) #draws for penalized zero model</code></pre>
@@ -507,7 +507,7 @@ par(mar = c(0,0,0,0))
 plot.phylo(lasth, edge.width = 2, show.tip.label = F)
 
 post_params &lt;- c(&quot;d&quot;, &quot;maxima&quot;, &quot;e&quot;, &quot;c&quot;)
-greek_params &lt;- c(expression(delta), &quot;maxima&quot;, expression(epsilon), expression(zeta))
+greek_params &lt;- c(expression(delta), expression(optima), expression(epsilon), expression(zeta))
 
 
 seq_along(post_params) %&gt;% map(function(x){
@@ -522,7 +522,7 @@ den_range &lt;- den_var$den %&gt;% map_df(~{
   yl = 0
   yh = quantile(.x$y, 1)
   cbind(xl, xh, yl, yh) %&gt;% as_data_frame
-}) %&gt;% summarise_each(funs(min, max))
+}) %&gt;% summarise_all(funs(min, max))
 
 
 names(den_var$den) &lt;- den_var$Species
@@ -537,20 +537,10 @@ seq_along(spp_list) %&gt;% map(~{
  })
 axis(1)
 mtext(greek_params[x], side = 1, line = 3)
-}) %&gt;% invisible</code></pre>
-<pre><code>## `summarise_each()` is deprecated.
-## Use `summarise_all()`, `summarise_at()` or `summarise_if()` instead.
-## To map `funs` over all variables, use `summarise_all()`
-## `summarise_each()` is deprecated.
-## Use `summarise_all()`, `summarise_at()` or `summarise_if()` instead.
-## To map `funs` over all variables, use `summarise_all()`
-## `summarise_each()` is deprecated.
-## Use `summarise_all()`, `summarise_at()` or `summarise_if()` instead.
-## To map `funs` over all variables, use `summarise_all()`
-## `summarise_each()` is deprecated.
-## Use `summarise_all()`, `summarise_at()` or `summarise_if()` instead.
-## To map `funs` over all variables, use `summarise_all()`</code></pre>
-<pre class="r"><code>select &lt;- dplyr::select
+}) %&gt;% invisible
+
+
+select &lt;- dplyr::select
 rename &lt;- dplyr::rename
 gradient &lt;- read.xls(&quot;data/Pool depths_FINAL summary_REVISED.xls&quot;, 
                      header = T, skip = 1, stringsAsFactors = F) %&gt;%
@@ -569,11 +559,11 @@ limz &lt;- gradient %&gt;%
 spp_list %&gt;%
   map(~{
     row_i &lt;- gradient %&gt;% filter(taxa == .x)
-    par(mar = c(0,0,0,0))
+    par(mar = c(0,0,0,2))
     plot(
       NA, NA, 
       ylim =c(-0.1, 0.5),
-      xlim = c(limz$miny, limz$maxy),
+      xlim = c(limz$miny, -limz$miny),
       axes = F, bty = &quot;n&quot;)
     segments(
       y0 = 0,
@@ -583,10 +573,13 @@ spp_list %&gt;%
       lwd = 1
       )
     points(row_i$Mean, 0, pch = 19)
+    abline(v = 0, lty = 2)
     #text(0.3, limz$maxy, row_i$taxa)
     if(.x == &quot;minor&quot;){
-      axis(1, cex.axis = 0.85)
-      mtext(side = 1, &quot;depth&quot;, line = 3, cex = 0.85)              
+      axis(1, cex.axis = 0.85, 
+           at = round(seq(limz$miny, -limz$miny, length.out = 4),2),
+           labels = round(seq(limz$miny*100, -limz$miny*100, length.out = 4),0))
+      mtext(side = 1, &quot;depth (cm)&quot;, line = 3, cex = 0.85)              
       }
   })</code></pre>
 <pre><code>## [[1]]
