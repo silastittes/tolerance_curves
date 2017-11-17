@@ -19,8 +19,8 @@ sim_tolerance <- function(
     beta_0 = 0,
     beta_1 = -1.5,
     nu = 20
-    ),
-                          
+  ),
+  
   hyper_sds = list(
     a = 0.2, 
     b = 0.2, 
@@ -30,7 +30,7 @@ sim_tolerance <- function(
     beta_0 = 0.1,
     beta_1 = 0.1,
     nu = 0.1
-    ),
+  ),
   
   random_axis = F,
   shift = 2
@@ -64,7 +64,7 @@ sim_tolerance <- function(
           hyper_sds[[param_chr]] *
           rnorm(n = n_spp, mean = hyper, sd = hyper_sd),
         lim, upper
-    ))
+      ))
   }
   
   a <- gen_val(param_chr = "a", lim = 1, upper = T, n_spp)
@@ -101,7 +101,7 @@ sim_tolerance <- function(
   mus <- 1:n_spp %>% map(~stretch_kumara(x[[.x]], a[.x], b[.x], c[.x]))
   
   p_zero <- 1:n_spp %>% map(~plogis(beta_0[.x] + beta_1[.x] * mus[[.x]]))
-                         
+  
   
   #generate gamma distributed variation around mean y values
   rgamma_v <- Vectorize(rgamma, "rate")
@@ -119,9 +119,9 @@ sim_tolerance <- function(
         gather(key = "treat_x", value = "y") %>% 
         mutate(treat = rep( x_o[[.x]], each = n_spp_treat),
                spp = rep(.x, nrow(.))) #%>%
-        #select(-treat_x)
-        
-      })
+      #select(-treat_x)
+      
+    })
   
   #ggplot(sim_data, aes(x = treat, y = y, colour = factor(spp))) +
   #  geom_point()
@@ -137,8 +137,8 @@ sim_tolerance <- function(
       beta_0 = beta_0,
       beta_1 = beta_1,
       nu = nu
-      )
     )
+  )
 }
 
 
@@ -158,11 +158,11 @@ stan_tolerance <- function(sim_data){
   sim_data <- sim_data$sim_data
   sim_data <- sim_data %>% group_by(spp, treat) %>%
     filter(sum(y > 0) > 0)
-
+  
   
   min_max_df <- sim_data %>% group_by(spp) %>%
     summarise(minx = min(treat),
-            maxx = max(treat))
+              maxx = max(treat))
   
   # estimate parameters
   stan_sim <- zigs <- 0:1 %>% map(~{
@@ -174,6 +174,7 @@ stan_tolerance <- function(sim_data){
                      numSpp = length(unique(sim_data$spp)),
                      sppint = sim_data$spp,
                      zig = .x,
+                     
                      a_pr_mu = -1, a_pr_sig = 0.2,
                      b_pr_mu = -1, b_pr_sig = 0.2,
                      c_pr_mu = 0, c_pr_sig = 0.4,
@@ -181,18 +182,18 @@ stan_tolerance <- function(sim_data){
                      e_pr_mu = 0, e_pr_sig = 0.4)
     
     sampling(mod,
-         data = dataList, 
-         iter = 100, chains = 4, 
-         control = list(adapt_delta = 0.8, max_treedepth = 10),
-         seed = 123
-         )
+             data = dataList, 
+             iter = 100, chains = 4, 
+             control = list(adapt_delta = 0.8, max_treedepth = 10),
+             seed = 123
+    )
     
-    })
+  })
   
   post <- stan_sim %>% map(~ rstan::extract(.x))
   
   params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
-
+  
   par_df <- post %>% map(function(y){
     params %>% map( ~{
       y[[.x]] %>%
@@ -208,10 +209,10 @@ stan_tolerance <- function(sim_data){
   
   par_set1 <- par_df[[1]] %>% group_by(Species) %>%
     map_kumara(seq(0,1, length.out = 100), .)
-    
+  
   par_set2 <- par_df[[2]] %>% group_by(Species) %>%
     map_kumara2(seq(0,1, length.out = 100), .)
-    
+  
   qq <- qqplot(par_set1$y, par_set2$y, plot.it = F)
   corr_models <-  cor(qq$x, qq$y)
   diff_models <- sum((qq$x - qq$y)^2) / (2*length(qq$y))
@@ -229,7 +230,7 @@ stan_tolerance <- function(sim_data){
         tp <- true_ps[y]
         t_vals <- eval(parse(text = tp))
         mean(t_vals[.x] > post[[2]][[tp]][,.x]) ##!!????!?!
-        }) %>% 
+      }) %>% 
         rbind() %>% 
         data.frame()
     })
@@ -256,7 +257,7 @@ stan_tolerance <- function(sim_data){
                 cred_in = mean(cred_in))
   })
   
-
+  
   prop_zero <- sim_data %>%
     group_by(spp) %>%
     summarise(prop_zero = mean(y == 0))
@@ -271,13 +272,32 @@ stan_tolerance <- function(sim_data){
     corr_models = corr_models,
     diff_models = diff_models,
     valid_df = valid_df
-    )
+  )
   return(results)
 }
 
 
 #function to visualize data, fit, and gam fit
 plot_sim_out <- function(out){
+  
+  #Make the "true" curves for each species
+  true_tol <- seq_along(out$sim_data$a) %>% 
+    map_df(~{
+      plot_kumara(
+        seq(0, 1, length.out = 100),
+        out$sim_data$a[.x], 
+        out$sim_data$b[.x], 
+        out$sim_data$c[.x], 
+        out$sim_data$d[.x], 
+        out$sim_data$e[.x]
+      ) %>% 
+        do.call(cbind, .) %>%
+        set_colnames(paste0(c("x", "y"))) %>%
+        as_tibble %>%
+        mutate(Species = paste0("X", .x))
+    })
+  
+  
   params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
   par_df <- out$sim_results$stan_posts %>% map(function(y){
     params %>% map( ~{
@@ -305,9 +325,12 @@ plot_sim_out <- function(out){
     geom_line(data = par_set1, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "dodgerblue") +
     geom_line(data = par_set2, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "yellow") +
     geom_jitter(data = data_plot, mapping = aes(x = treat, y = y), 
-                height = 0, width = 0.1, alpha = 0.5) +
+                height = 0, width = 0.05, alpha = 0.5) +
     facet_wrap(~Species, scales = "free_y") +
-    geom_smooth(data = data_plot, aes(x=treat, y=y), se = F, colour = "green") +
+    geom_smooth(data = data_plot, aes(x=treat, y=y), 
+                se = F, colour = "green", alpha = 0.5, lwd = 0.5) +
+    geom_line(data = true_tol, aes(x = x, y = y), 
+              colour = "blue", lwd = 0.5, alpha = 0.5) +
     theme_minimal()
 }
 
@@ -329,7 +352,9 @@ sim_table <- function(out, file_name){
                    "$\\beta_1$", "$\\nu$")) %>%
     xtable()
   align( sim_table ) <- c( 'l', 'p{1.5in}', 'p{1.5in}' )
-  print.xtable(x = sim_table, file = file_name)
+  
+  if(missing(file_name)) print.xtable(x = sim_table) 
+  else print.xtable(x = sim_table, file = file_name)
 }
 
 
@@ -339,7 +364,7 @@ set.seed(123)
 ideal_data <- sim_tolerance(
   n_spp_treat = 10, n_treat = 5, 
   n_spp = 14, random_axis = F, shift = 0
-  )
+)
 
 ideal_results <- stan_tolerance(ideal_data)
 ideal_out <- list(sim_data=ideal_data, sim_results=ideal_results)
@@ -356,16 +381,18 @@ challenge_data <- sim_tolerance(
     beta_0 = 0.5,
     beta_1 = 0.5,
     nu = 1
-    )
   )
+)
+
+
 
 challenge_results <- stan_tolerance(challenge_data)
 challenge_out <- list(sim_data=challenge_data, sim_results=challenge_results)
 
-
+#sim_table(ideal_out)
+#sim_table(challenge_out)
 sim_table(ideal_out, "derived_files/idea_simtable.tex")
 sim_table(challenge_out, "derived_files/idea_challengetable.tex")
-
 
 ideal_out$sim_results$prop_zero
 ideal_out$sim_results$corr_models
