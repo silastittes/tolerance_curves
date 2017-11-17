@@ -276,9 +276,11 @@ load_lasth <- function(addbr = 0.001){
   addtree <- rtree(
     n = length(newtips), rooted = T, 
     tip.label = newtips, 
-    br = rexp(
-      n = length(newtips), 
-      rate = 1/addbr)
+    #br = rexp(
+    #  n = length(newtips), 
+    #  rate = 0)
+    
+    br = rep(0.000001, length(newtips))
     )
 
   
@@ -287,7 +289,7 @@ load_lasth <- function(addbr = 0.001){
   #drop
   drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
   lasth <- drop.tip(phy = lasth, tip = drop)
+  lasth <- di2multi(lasth, 0.000001)
   lasth <- chronos(lasth, lambda = 1)
   return(lasth)
 }
-
