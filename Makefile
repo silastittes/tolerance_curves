@@ -30,7 +30,7 @@ figures/fig2.pdf: bayes/postpred.R bayes/samples/tolerance_v3_*.csv
 derived_files/curve_K.csv: phylo_signal.R bayes/samples/tolerance_v3_*.csv bayes/stan_par1_df.csv bayes/fitted_points_mod1.csv
 	Rscript phylo_signal.R
 
-figures/fig3.pdf: bayes/samples/tolerance_v3_*.csv derived_files/curve_K.csv tolerance_v3_plotting.Rmd
+figures/fig3.pdf: bayes/samples/tolerance_v3_*.csv derived_files/curve_K.csv tolerance_v3_plotting.Rmd tolerance_functions.R
 	Rscript -e "rmarkdown::render('tolerance_v3_plotting.Rmd')"
 
 derived_files/pgls.tex: moisture_pic.R bayes/samples/tolerance_v3_*.csv
