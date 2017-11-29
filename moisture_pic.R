@@ -167,8 +167,8 @@ mv_plgs_long %>%
                                     "^e_sc_pvals$" = "ε")
                                   ),
          pagel_lambda = str_replace_all(pagel_lambda, 
-                                 c("0" = "λ_0",
-                                   "1" = "λ_1"))
+                                 c("0" = "λ = 0",
+                                   "1" = "λ = 1"))
   ) %>%
   ggplot(aes(x = pvals)) +
   facet_grid(params ~ pagel_lambda, scales = "free_y") +
