@@ -70,7 +70,7 @@ post_plot <- post_pred %>% ggplot(aes(x = ssq_obs, y = ssq_pseudo)) +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
   theme(text = element_text(size = 4))
 
-ggsave("figures/fig2.pdf", plot = post_plot, device = "pdf")
+ggsave("figures/figA12.pdf", plot = post_plot, device = "pdf")
 #ggsave("analyses_and_viz/postpred.png", plot = post_plot, device = "png")
 
 
