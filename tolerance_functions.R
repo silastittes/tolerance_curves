@@ -280,7 +280,7 @@ load_lasth <- function(addbr = 0.001){
     #  n = length(newtips), 
     #  rate = 0)
     
-    br = rep(0.000001, length(newtips))
+    br = rep(1e-6, length(newtips))
     )
 
   
@@ -289,7 +289,10 @@ load_lasth <- function(addbr = 0.001){
   #drop
   drop <- lasth$tip.label[!lasth$tip.label %in% unique(emery$Species)]
   lasth <- drop.tip(phy = lasth, tip = drop)
-  lasth <- di2multi(lasth, 0.000001)
+  lasth <- di2multi(lasth, 1e-5)
   lasth <- chronos(lasth, lambda = 1)
+  lasth <- ladderize(lasth, right = T)
   return(lasth)
 }
+
+#plot(load_lasth())
