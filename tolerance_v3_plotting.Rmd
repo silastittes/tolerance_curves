@@ -141,7 +141,7 @@ sig %>% group_by(param) %>%
 #sig_den <- sig %>% group_by(param) %>%
 #  do(den = density(sig$signal))
 
-cairo_pdf("figures/fig5.pdf")
+cairo_pdf("figures/fig4.pdf")
 #png(filename = "figures/signal.png")
 sig %>%
   mutate(param = sub("maxima", "optima", param)) %>%
@@ -153,7 +153,7 @@ sig %>%
                 )) %>% 
   ggplot(aes(x = signal)) +
   geom_density(fill="blue", alpha = 0.8) +
-  facet_wrap(~param, nrow = 2) +
+  facet_wrap(~param, ncol = 2) +
   theme_classic() +
   theme(text = element_text(size=16))
 dev.off()
@@ -234,7 +234,7 @@ names(colz_par) <- names(state_reg_aqua_terr2terr)
 
 spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <= length(lasth$tip.label)]])
 
-pdf("figures/fig4.pdf")
+pdf("figures/fig3.pdf")
 #png(filename = "figures/fig4_curves.png")
 
 cnc <- 1
@@ -327,7 +327,7 @@ spp_list %>%
     points(row_i$Mean, 0, pch = 19)
     abline(v = 0, lty = 2)
     #text(0.3, limz$maxy, row_i$taxa)
-    if(.x == "minor"){
+    if(.x == spp_list[length(spp_list)]){
       axis(1, cex.axis = 0.85, 
            at = round(seq(limz$miny, -limz$miny, length.out = 4),2),
            labels = round(seq(limz$miny*100, -limz$miny*100, length.out = 4),0))
@@ -445,7 +445,7 @@ yrng <- max(emery$Inflor_biomass)
 
 #pdf(paste0(getwd(),"/figures/tree_tolerance.pdf"))
 #png(filename = "figures/fig3_tree_tolerance.png") #alt
-pdf("figures/fig3.pdf") #alt
+pdf("figures/fig2.pdf") #alt
 #svg("figures/fig3_tree_tolerance.svg") #alt
 
 c1 <- rep(1, length(spp_list))
@@ -569,7 +569,7 @@ dev.off()
 
 
 ## Plotting parameter densities with priors
-```{r, eval =FALSE}
+```{r, eval = TRUE}
 
 spp_names <- emery %>% select(Species, sppint) %>% 
   unique() %>% 
