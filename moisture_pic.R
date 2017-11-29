@@ -157,14 +157,24 @@ pval_hm <- mv_plgs_long %>%
   arrange(params) %>%
   ungroup()
 
-
-#mv_plgs_long %>% 
-#  filter(pagel_lambda == 0) %>%
-#  ggplot(aes(x = pvals)) +
-#  facet_wrap(~ params, scales = "free_y") +
-#  geom_histogram() +
-#  theme_minimal()
-  
+cairo_pdf(filename = "figures/A13.pdf")
+mv_plgs_long %>% 
+  mutate(params = str_replace_all(params, 
+                                  c("^c_sc_pvals$" = "ζ", 
+                                    "\\(Intercept\\)_pvals" = "Intercept",
+                                    "^maxima_sc_pvals$" = "optima",
+                                    "^d_sc_pvals$" = "δ", 
+                                    "^e_sc_pvals$" = "ε")
+                                  ),
+         pagel_lambda = str_replace_all(pagel_lambda, 
+                                 c("0" = "λ_0",
+                                   "1" = "λ_1"))
+  ) %>%
+  ggplot(aes(x = pvals)) +
+  facet_grid(params ~ pagel_lambda, scales = "free_y") +
+  geom_histogram() +
+  theme_minimal()
+dev.off()
 
 options(xtable.sanitize.colnames.function=identity,
         xtable.sanitize.rownames.function=identity)
@@ -221,6 +231,56 @@ mean(pg_0$slopes > pg_1$slopes)
 #  geom_joy(col = "white") +
 #  theme_bw() +
 #  theme(text = element_text(size=16))
+
+
+cairo_pdf(filename = "figures/A14.pdf")
+layout(
+  mat = matrix(c(1,2,3,4), byrow = F, nrow = 2)
+)
+
+rdraw <- 155
+rtree_int <- 24
+for(i in 0:1){
+  temp_df <- wide_params %>% 
+    filter(draw == rdraw)
+  
+  mv_pgls_tree <- drop.tip(trees_post[[rtree_int]], tree_miss)
+  
+  mod_full <- temp_df %>%
+    filter(Species %in% grad$Species) %>% 
+    as.data.frame %>%
+    set_rownames(.$Species) %>%
+    gls(Mean ~ c_sc + d_sc + e_sc +  maxima_sc, #keep maxima_sc? 
+        data = .,
+        correlation = corPagel(i, phy = mv_pgls_tree, fixed = T),
+        method = "ML"
+    )
+  print(summary(mod_full))
+  
+  st_resid <- mod_full$residuals/attr(mod_full$residuals, "std")[1]
+  plot(
+    mod_full$fitted,
+    st_resid,
+    main = paste("λ = ", i),
+    xlab = "fitted values",
+    ylab = ifelse(i == 0, "standardized residuals", "" )
+    )
+  
+  lines(
+    loess.smooth(
+      mod_full$fitted,
+      st_resid
+    )
+  )
+  abline(h = 0, lty = 2)
+  qqnorm(
+    st_resid, 
+    main = "",
+    ylab = ifelse(i == 0, "Sample Quantiles", "" )
+    )
+  abline(0,1, lty = 2)
+}
+dev.off()
 
 
 #NON PHYLOGENETIC LASSO CLASSIFICATION BY HABITAT
