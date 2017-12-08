@@ -158,6 +158,7 @@ pval_hm <- mv_plgs_long %>%
   ungroup()
 
 cairo_pdf(filename = "figures/A13.pdf")
+
 mv_plgs_long %>% 
   mutate(params = str_replace_all(params, 
                                   c("^c_sc_pvals$" = "ζ", 
@@ -280,6 +281,7 @@ for(i in 0:1){
     )
   abline(0,1, lty = 2)
 }
+
 dev.off()
 
 
@@ -297,25 +299,17 @@ lasso_all <- wide_params %>% group_by(draw) %>%
                          family = "binomial", 
                          nfolds = nrow(test_modmat),
                          grouped = F) %>%
-      coef(s = "lambda.min")
-    
-    lasso_df <- rep(0, length(cv_coef@Dimnames[[1]])) %>% rbind %>% 
-      as_tibble %>%
-      set_colnames(cv_coef@Dimnames[[1]])
-    
-    covs <- cv_coef@Dimnames[[1]]
-    cov_idx <- match(covs[cv_coef@i+1],
-          covs
-          )
-    lasso_df[cov_idx] <- cv_coef@x
-    lasso_df
+      coef(s = "lambda.min") %>% 
+      as.matrix %>% 
+      t %>% 
+      as_tibble
   })
 
 
 lasso_all %>% 
   ungroup %>%
   select(-draw, -`(Intercept)`) %>%
-  summarise_each(
+  summarise_all(
     funs(
       mean = mean(., na.rm = T),
       prop = mean(. > 0, na.rm = T)
@@ -329,6 +323,32 @@ lasso_all %>%
   xtable(caption = "something here", digits = 3) %>% 
   print.xtable(include.rownames=FALSE, file = "derived_files/lasso.tex")
 
+
+
+
+#r_draw <- 353
+r_draw <- sample(1:400, 1)
+test_df <- wide_params %>% 
+  filter(draw == r_draw) %>% 
+  as.data.frame %>% 
+  set_rownames(.$Species)
+test_modmat <- test_df %>% select(contains("_sc")) %>%
+  select(c_sc, maxima_sc, e_sc, d_sc) %>%
+  model.matrix(test_df$aqua_terr2terr_bin ~ . -1, data = .)
+
+cv_coef <- cv.glmnet(test_modmat, 
+                     test_df$aqua_terr2terr_bin,
+                     family = "binomial", 
+                     nfolds = nrow(test_modmat),
+                     grouped = F, 
+                     type.measure = "deviance"
+                     )
+
+#cairo_pdf(filename = "figures/A15.pdf")
+plot(cv_coef)
+#dev.off()
+
+as.matrix(coef(cv_coef, s = "lambda.min"))
 
 #glm(aqua_terr2terr_bin ~  c_sc + breadth_sc, 
 #    data = test_df, family = binomial)
