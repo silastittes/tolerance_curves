@@ -402,10 +402,10 @@ challenge_out$sim_results$prop_zero
 challenge_out$sim_results$corr_models
 challenge_out$sim_results$diff_models
 
-cairo_pdf(filename = "figures/A1.pdf")
+cairo_pdf(filename = "figures/B1.pdf")
 plot_sim_out(ideal_out)
 dev.off()
 
-cairo_pdf(filename = "figures/A2.pdf")
+cairo_pdf(filename = "figures/B2.pdf")
 plot_sim_out(challenge_out)
 dev.off()
