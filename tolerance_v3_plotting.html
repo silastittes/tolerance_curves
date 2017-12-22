@@ -35,7 +35,7 @@ if (window.hljs) {
   hljs.configure({languages: []});
   hljs.initHighlightingOnLoad();
   if (document.readyState && document.readyState === "complete") {
-    window.setTimeout(function() { hljs.initHighlightingOnLoad(); }, 0);
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
   }
 }
 </script>
@@ -120,7 +120,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">tolerance curves plotting</h1>
 <h4 class="author"><em>Silas Tittes</em></h4>
-<h4 class="date"><em>22 November, 2017</em></h4>
+<h4 class="date"><em>21 December, 2017</em></h4>
 
 </div>
 
@@ -130,11 +130,11 @@ $(document).ready(function () {
   )</code></pre>
 <p>sim_params3 ## Data prep</p>
 <pre class="r"><code>source(&quot;load_data.R&quot;)</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────── tidyverse 1.2.0 ──</code></pre>
-<pre><code>## ✔ ggplot2 2.2.1     ✔ purrr   0.2.4
-## ✔ tibble  1.3.4     ✔ dplyr   0.7.4
-## ✔ tidyr   0.7.2     ✔ stringr 1.2.0
-## ✔ readr   1.1.1     ✔ forcats 0.2.0</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.4     
+## ✔ tibble  1.3.4          ✔ dplyr   0.7.4     
+## ✔ tidyr   0.7.2          ✔ stringr 1.2.0     
+## ✔ readr   1.1.1          ✔ forcats 0.2.0</code></pre>
 <pre><code>## ── Conflicts ───────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ readr::col_factor() masks scales::col_factor()
 ## ✖ purrr::discard()    masks scales::discard()
@@ -340,12 +340,13 @@ dev.off()</code></pre>
   map_comp_p &lt;- map_df(var_df, ~{
     map_dbl(var_df, function(x){
       comp_p &lt;- mean(.x &gt; x)
-      ifelse(comp_p &gt; high | comp_p &lt; low, round(mean(.x - x),2), NA)
+      ifelse(comp_p &gt; high | comp_p &lt; low, round(mean(.x - x), 1), NA)
     })
   }) %&gt;% as.matrix
   
   map_comp_p[upper.tri(map_comp_p, diag = T)] &lt;- NA
   map_comp_p &lt;- cbind(colnames(map_comp_p), map_comp_p)
+  colnames(map_comp_p) &lt;- paste0(substr(colnames(map_comp_p), 1, 2), &quot;.&quot;)
   colnames(map_comp_p)[1] &lt;- tab_strings[which(post_params == var)]
   
   write.csv(map_comp_p, 
@@ -354,14 +355,17 @@ dev.off()</code></pre>
   options(xtable.sanitize.colnames.function=identity,
           xtable.sanitize.rownames.function=identity)
   
-  print.xtable(xtable(map_comp_p), size=&quot;\\fontsize{5pt}{5pt}\\selectfont&quot;, 
+  #print.xtable(xtable(map_comp_p), size=&quot;\\fontsize{5pt}{5pt}\\selectfont&quot;, 
+  #             file = pair_file, append = TRUE, include.rownames=FALSE)
+  print.xtable(xtable(map_comp_p), 
                file = pair_file, append = TRUE, include.rownames=FALSE)
+  
   
 }
 
 
-post_params &lt;- c(&quot;c&quot;, &quot;d&quot;, &quot;e&quot;, &quot;maxima&quot;, &quot;breadth&quot;, &quot;area&quot;)
-tab_strings &lt;- c(&quot;$\\zeta$&quot;, &quot;$\\delta$&quot;, &quot;$\\epsilon$&quot;, &quot;maxima&quot;, &quot;$\\epsilon - \\delta$&quot;, &quot;area&quot;)
+post_params &lt;- c(&quot;d&quot;, &quot;maxima&quot;, &quot;e&quot;, &quot;c&quot;, &quot;breadth&quot;, &quot;area&quot;)
+tab_strings &lt;- c(&quot;$\\delta$&quot;, &quot;optima&quot;, &quot;$\\epsilon$&quot;, &quot;$\\zeta$&quot;, &quot;$\\epsilon - \\delta$&quot;, &quot;area&quot;)
 names(post_params) &lt;- tab_strings 
 pair_file &lt;- &quot;derived_files/parameter_comp_matrices/post_all_comparisons.tex&quot;
 file.create(pair_file)</code></pre>
@@ -405,7 +409,7 @@ sig %&gt;%
                 )) %&gt;% 
   ggplot(aes(x = signal)) +
   geom_density(fill=&quot;blue&quot;, alpha = 0.8) +
-  facet_wrap(~param, nrow = 2) +
+  facet_wrap(~param, ncol = 2) +
   theme_classic() +
   theme(text = element_text(size=16))
 dev.off()</code></pre>
@@ -823,7 +827,7 @@ predDF_Zero &lt;- predDF[predDF$Inflor_biomass == 0, ]
 #plot(emery$Inflor_biomass, meanDraws)
 #abline(0,1, lty=2, col=&quot;red&quot;)
 
-pdf(&quot;figures/figA11.pdf&quot;)
+pdf(&quot;figures/figB11.pdf&quot;)
 plot(predDF_nZero$meanDraws, (predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws),
      pch=as.integer(emery$Species), xlab = &quot;fitted values&quot;, ylab = &quot;residuals&quot;)
 
@@ -879,42 +883,42 @@ plt_params &lt;- function(p, den_rng, pr_mu, pr_sd){
     theme(plot.title = element_text(hjust = 0.5))
 }
 
-cairo_pdf(filename = paste0(&quot;figures/A&quot;, 3, &quot;.pdf&quot;))
+cairo_pdf(filename = paste0(&quot;figures/B&quot;, 3, &quot;.pdf&quot;))
 plt_params(p = 1, den_rng = c(-6,6), -1, 1)
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 4, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 4, &quot;.pdf&quot;))
 plt_params(p = 2, den_rng = c(-6,6), -1, 1)
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 5, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 5, &quot;.pdf&quot;))
 plt_params(p = 3, den_rng = c(-3,3), 0, 1) 
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 6, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 6, &quot;.pdf&quot;))
 plt_params(p = 4, den_rng = c(-3,3), 0, 1) 
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 7, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 7, &quot;.pdf&quot;))
 plt_params(p = 5, den_rng = c(-3,3), 0, 1) 
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 8, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 8, &quot;.pdf&quot;))
 plt_params(p = 6, den_rng = c(-3,3), 0, 1) 
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 9, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 9, &quot;.pdf&quot;))
 plt_params(p = 7, den_rng = c(-3,3), 0, 1) 
 dev.off()</code></pre>
 <pre><code>## png 
 ##   2</code></pre>
-<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/A&quot;, 10, &quot;.pdf&quot;))
+<pre class="r"><code>cairo_pdf(filename = paste0(&quot;figures/B&quot;, 10, &quot;.pdf&quot;))
 plt_params(p = 8, den_rng = c(-3,3), 2, 1) #+ theme(legend.position=&quot;none&quot;)
 dev.off()</code></pre>
 <pre><code>## png 

@@ -157,7 +157,7 @@ pval_hm <- mv_plgs_long %>%
   arrange(params) %>%
   ungroup()
 
-cairo_pdf(filename = "figures/A13.pdf")
+cairo_pdf(filename = "figures/B13.pdf")
 
 mv_plgs_long %>% 
   mutate(params = str_replace_all(params, 
@@ -234,7 +234,7 @@ mean(pg_0$slopes > pg_1$slopes)
 #  theme(text = element_text(size=16))
 
 
-cairo_pdf(filename = "figures/A14.pdf")
+cairo_pdf(filename = "figures/B14.pdf")
 layout(
   mat = matrix(c(1,2,3,4), byrow = F, nrow = 2)
 )
@@ -344,7 +344,7 @@ cv_coef <- cv.glmnet(test_modmat,
                      type.measure = "deviance"
                      )
 
-#cairo_pdf(filename = "figures/A15.pdf")
+#cairo_pdf(filename = "figures/B15.pdf")
 plot(cv_coef)
 #dev.off()
 
