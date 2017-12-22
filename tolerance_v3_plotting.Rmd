@@ -98,12 +98,13 @@ comp_matrices <- function(var, cut = 0.95){
   map_comp_p <- map_df(var_df, ~{
     map_dbl(var_df, function(x){
       comp_p <- mean(.x > x)
-      ifelse(comp_p > high | comp_p < low, round(mean(.x - x),2), NA)
+      ifelse(comp_p > high | comp_p < low, round(mean(.x - x), 1), NA)
     })
   }) %>% as.matrix
   
   map_comp_p[upper.tri(map_comp_p, diag = T)] <- NA
   map_comp_p <- cbind(colnames(map_comp_p), map_comp_p)
+  colnames(map_comp_p) <- paste0(substr(colnames(map_comp_p), 1, 2), ".")
   colnames(map_comp_p)[1] <- tab_strings[which(post_params == var)]
   
   write.csv(map_comp_p, 
@@ -112,14 +113,17 @@ comp_matrices <- function(var, cut = 0.95){
   options(xtable.sanitize.colnames.function=identity,
           xtable.sanitize.rownames.function=identity)
   
-  print.xtable(xtable(map_comp_p), size="\\fontsize{5pt}{5pt}\\selectfont", 
+  #print.xtable(xtable(map_comp_p), size="\\fontsize{5pt}{5pt}\\selectfont", 
+  #             file = pair_file, append = TRUE, include.rownames=FALSE)
+  print.xtable(xtable(map_comp_p), 
                file = pair_file, append = TRUE, include.rownames=FALSE)
+  
   
 }
 
 
-post_params <- c("c", "d", "e", "maxima", "breadth", "area")
-tab_strings <- c("$\\zeta$", "$\\delta$", "$\\epsilon$", "maxima", "$\\epsilon - \\delta$", "area")
+post_params <- c("d", "maxima", "e", "c", "breadth", "area")
+tab_strings <- c("$\\delta$", "optima", "$\\epsilon$", "$\\zeta$", "$\\epsilon - \\delta$", "area")
 names(post_params) <- tab_strings 
 pair_file <- "derived_files/parameter_comp_matrices/post_all_comparisons.tex"
 file.create(pair_file)
@@ -545,7 +549,7 @@ predDF_Zero <- predDF[predDF$Inflor_biomass == 0, ]
 #plot(emery$Inflor_biomass, meanDraws)
 #abline(0,1, lty=2, col="red")
 
-pdf("figures/figA11.pdf")
+pdf("figures/figB11.pdf")
 plot(predDF_nZero$meanDraws, (predDF_nZero$Inflor_biomass - predDF_nZero$meanDraws),
      pch=as.integer(emery$Species), xlab = "fitted values", ylab = "residuals")
 
@@ -603,35 +607,35 @@ plt_params <- function(p, den_rng, pr_mu, pr_sd){
     theme(plot.title = element_text(hjust = 0.5))
 }
 
-cairo_pdf(filename = paste0("figures/A", 3, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 3, ".pdf"))
 plt_params(p = 1, den_rng = c(-6,6), -1, 1)
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 4, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 4, ".pdf"))
 plt_params(p = 2, den_rng = c(-6,6), -1, 1)
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 5, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 5, ".pdf"))
 plt_params(p = 3, den_rng = c(-3,3), 0, 1) 
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 6, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 6, ".pdf"))
 plt_params(p = 4, den_rng = c(-3,3), 0, 1) 
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 7, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 7, ".pdf"))
 plt_params(p = 5, den_rng = c(-3,3), 0, 1) 
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 8, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 8, ".pdf"))
 plt_params(p = 6, den_rng = c(-3,3), 0, 1) 
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 9, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 9, ".pdf"))
 plt_params(p = 7, den_rng = c(-3,3), 0, 1) 
 dev.off()
 
-cairo_pdf(filename = paste0("figures/A", 10, ".pdf"))
+cairo_pdf(filename = paste0("figures/B", 10, ".pdf"))
 plt_params(p = 8, den_rng = c(-3,3), 2, 1) #+ theme(legend.position="none")
 dev.off()
 
