@@ -9,7 +9,7 @@ taxa_key <- read_delim("data/Isolate_Key.txt", delim = "\t", col_names = F) %>%
   filter(!is.na(X3)) %>%
   mutate(
     X3 = ifelse(X3 == "amb", 'ambl', X3),
-    X3 = paste0("'", X3, "'"),
+    #X3 = paste0("'", X3, "'"), #these quotes are bad
     names = ifelse( is.na(X8),X6,X8)
     )
 
@@ -25,6 +25,7 @@ trees_post <- read_lines("data/C1.trees", n_max = n_samp, skip = n_trees-n_samp)
   .[thin_samp] %>%
   map(function(x){
     tree_i <- read.tree(text = x)
+    #tree_i <- read.tree(text = trees_post[1])
     tree_taxa_switch <- tree_i$tip.label %>%
       map_df(~ taxa_key %>% 
                filter(X3 == .x) %>% 

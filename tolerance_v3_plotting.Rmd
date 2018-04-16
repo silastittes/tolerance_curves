@@ -10,9 +10,9 @@ output:
 ---
 
 ```{r setup}
-knitr::opts_knit$set(
-  root.dir = '~/Documents/Projects/tolerance-curve2/'
-  )
+#knitr::opts_knit$set(
+#  root.dir = '~/Documents/Projects/tolerance-curve2/'
+#  )
 ```
 
 sim_params3
