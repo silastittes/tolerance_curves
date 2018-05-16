@@ -19,7 +19,7 @@ sim_params3
   ## Data prep
 ```{r}
 source("load_data.R")
-draws <- read_csv("bayes/stan_par1_df.csv") #draws for penalized zero model
+#draws <- read_csv("bayes/stan_par1_df.csv") #draws for penalized zero model
 draw_fits <- read_csv("bayes/fitted_points_mod1.csv")
 ```
 
@@ -133,7 +133,6 @@ post_params %>% map( ~ comp_matrices(var = .x)) %>% invisible
 
 
 
-
 ## Plotting phylogenetic signal of curves
 ```{r}
 sig <- read_csv("derived_files/curve_K.csv")
@@ -164,9 +163,7 @@ dev.off()
 
 ```
 
-
-
-## Parameter density plot with phylogeny version 2
+## concept plot of curves
 ```{r}
 
 plot_concept <- function(){
@@ -186,9 +183,10 @@ plot_concept <- function(){
   bredth <- e - d
   
   arr_len <- 0.05
-  par_cex <- 1.4
+  par_cex <- 1
   
-  plot(xseq_a, fa, type = "l", lwd = 4, axes = F, xlab = "", ylab = "",
+  par(mar = c(3, 2, 1, 1)*1.1)
+  plot(xseq_a, fa, type = "l", lwd = 2, axes = F, xlab = "", ylab = "",
        ylim = c(0, max(fa)*1.25) )
   axis(1, labels = F); axis(2, labels = F)
   mtext(text = "Fitness", side = 2, line = 1.2)
@@ -227,6 +225,243 @@ plot_concept <- function(){
   
 }
 
+```
+
+## DAG
+
+```{r}
+plt_par <- function(input, coord, plot = F, rng = NULL, ...){
+  if(plot){
+    par(mar = c(0,0,1,0))
+    plot(NA, NA, 
+         xlim = c(rng[1], rng[2]), 
+         ylim = c(rng[3], rng[4]), 
+         axes = F, 
+         xlab = "", 
+         ylab = "")
+    }
+  input <- substitute(input)
+  text(coord[1],coord[2], eval(expression(input)), ...)  
+}
+
+plot_dag <- function(){
+  l1 <- 4
+  l2 <- 3
+  l3 <- 2
+  l4 <- 1
+  buff <- 0.15
+  arl <- 0.05
+  tpos <- 4
+  xtpos <- 0.4
+  rng <- c(0.5, l1 + 1.25, 0.9, l1 + 0.75)
+  
+
+  l1_x <- c(0.8, 2, 3.75)
+  l2_x <- l1_x
+  l3_x <- c(1.2, 1.6, 2, 2.4, 2.8, 3.5, 4)
+  l4_x <- c(0.8, l3_x)
+    
+  plt_par(x[ij], 
+          coord = c(l1_x[1], l1), 
+          plot = T, 
+          rng = rng)
+
+  
+  abline(v = 3.15, lty = 3, col = "grey")
+  text(2, 4.5, "( Reproductive biomass )")
+  text(3.75, 4.5, "( Mortality )")
+  
+  #level 1  
+  plt_par(y[ij], coord = c(l1_x[2], l1))
+  plt_par(z[ij], coord = c(l1_x[3], l1))
+  
+  #x to y
+  arrows(l1_x[1] + buff, l1, l1_x[2] - buff, l1, length = arl, lty = 2)
+  #arrows(l1_x[3] - buff, l1, l1_x[2] + buff, l1, length = arl)
+  
+  
+  
+  #level 2
+  plt_par(mu[ij], coord = c(l2_x[2], l2), col = "blue")
+  plt_par(p[ij], coord = c(l2_x[3], l2), col = "blue")
+  
+  #mu to y
+  arrows(l2_x[2], l2+buff, l2_x[2], l1-buff, length = arl)
+  
+  #mu to p
+  arrows(l2_x[2]+buff, l2, l2_x[3]-buff, l2, length = arl)
+  
+  #p to z
+  arrows(l2_x[3], l2+buff, l2_x[3], l1-buff, length = arl)
+  
+  #p to y
+  arrows(l2_x[3]-buff, l2+buff, l2_x[2]+buff, l1-buff, length = arl)
+  
+  
+  #level 3
+  plt_par(nu[j], coord = c(l4_x[1], l3))
+  
+  plt_par(alpha[j], coord = c(l3_x[1], l3))
+  plt_par(beta[j], coord = c(l3_x[2], l3))
+  plt_par(zeta[j], coord = c(l3_x[3], l3))
+  plt_par(delta[j], coord = c(l3_x[4], l3))
+  plt_par(epsilon[j], coord = c(l3_x[5], l3))
+  
+  
+  #nu to y
+  arrows(l4_x[1], l3+buff, l2_x[2]-buff, l1-buff, length = arl)
+  
+  #a,b,c,d,e to mu
+  for(i in 1:5){
+    arrows(l3_x[i], l3+buff, l2_x[2], l2-2*buff, length = 0)
+  }
+  
+  #connector to mu
+  arrows(l2_x[2], l2-2*buff, l2_x[2], l2-buff, length = arl)
+  
+  plt_par(beta[0[j]], coord = c(l3_x[6], l3), cex = 1)
+  plt_par(beta[1[j]], coord = c(l3_x[7], l3), cex = 1)
+  
+  #beta_0 to p
+  arrows(l3_x[6], l3+buff, l2_x[3], l2-2*buff, length = 0)
+  
+  #beta_1 to p
+  arrows(l3_x[7], l3+buff, l2_x[3], l2-2*buff, length = 0)
+  
+  #connector to p
+  arrows(l2_x[3], l2-2*buff, l2_x[3], l2-buff, length = arl)
+  
+  #level4
+  plt_par(mu[nu], coord = c(l4_x[1], l4))
+  plt_par(mu[alpha], coord = c(l4_x[2], l4))
+  plt_par(mu[beta], coord = c(l4_x[3], l4))
+  plt_par(mu[zeta], coord = c(l4_x[4], l4))
+  plt_par(mu[delta], coord = c(l4_x[5], l4))
+  plt_par(mu[epsilon], coord = c(l4_x[6], l4))
+  
+  plt_par(mu[beta[0]], coord = c(l4_x[7], l4), cex = 1)
+  plt_par(mu[beta[1]], coord = c(l4_x[8], l4), cex = 1)
+  
+  
+  #nu to nu
+  arrows(l4_x[1], l4 + buff, l4_x[1], l3 - buff, length = arl)
+  
+  #abcdeb0b1 to abcdeb0b1
+  for(i in 2:8){
+    arrows(l4_x[i], l4 + buff, l3_x[i-1], l3 - buff, length = arl)  
+  }
+  
+  #info text
+  abline(v = l1 + xtpos, col = "grey")
+  text(l1 + xtpos, l1, "Data", pos = tpos)
+  text(l1 + xtpos, l2, "Computed", pos = tpos)
+  text(l1 + xtpos, l3, "Species level", pos = tpos)
+  text(l1 + xtpos, l4, "Group level", pos = tpos)
+  
+  
+}
+
+plot_dag()
+```
+
+
+## New concept fig
+```{r}
+cairo_pdf(filename = "figures/fig2_new.pdf")
+par(mfrow = c(2,1))
+plot_dag()
+plot_concept()
+dev.off()
+```
+
+
+## Reviewer suggested alternative to figure 3 (error bars)
+```{r}
+
+grad_df <- gen_gradient_df(tolerance_df = draws) #non-zig version
+
+
+q_low <- function(x) quantile(x, probs = 0.225, na.rm = T)
+q_hi <- function(x) quantile(x, probs = 0.975, na.rm = T)
+
+
+err_df <- grad_df %>%
+  select(Species, a, b, c, d, e, maxima, Mean, SE) %>%
+  group_by(Species) %>%
+  summarise_all(.funs = list(mean = mean, `5th` = q_low, `95th` = q_hi)) %>%
+  ungroup() %>%
+  mutate(mpse = Mean_mean + SE_mean,
+         mmse = Mean_mean - SE_mean) %>%
+  left_join(., select(grad_df, Species, aqua_terr2terr) %>% unique(), by = "Species") %>%
+  mutate(Species = factor(Species, levels = lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <= length(lasth$tip.label)]]))
+
+
+plot_err <- function(df = err_df, var, var_lo, var_hi, param, first = F, standard = T){
+  
+  if(standard){
+    meen <- paste0(enquo(var), "_mean")
+    lo <- paste0(enquo(var), "_5th")
+    hi <- paste0(enquo(var), "_95th")
+    par_plot_df <- df %>%
+    select(Species, !! meen[2], !! lo[2], !! hi[2], aqua_terr2terr) %>%
+    rename(var_mean = !! meen[2],
+           var_lo = !! lo[2],
+           var_hi = !! hi[2])
+  } else {
+    meen <- enquo(var)
+    lo <- enquo(var_lo)
+    hi <- enquo(var_hi)
+    par_plot_df <- df %>%
+    select(Species, !! meen, !! lo, !! hi, aqua_terr2terr) %>%
+    rename(var_mean = !! meen,
+           var_lo = !! lo,
+           var_hi = !! hi)
+  }
+  
+  par_plot <- par_plot_df %>% 
+    ggplot(aes(var_mean, Species, colour = aqua_terr2terr)) +
+    geom_errorbarh(height = 0.25, colour = "black", aes(xmin=var_lo, xmax=var_hi), inherit.aes = T) +
+    geom_point(alpha = 0.9) +
+    xlab(param) +
+    scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
+    scale_colour_manual(values=topo.colors(n = 12, alpha = 1)[c(11,4)]) +
+    theme_minimal() +
+    theme(legend.position = "none",
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank()) 
+  
+  if(first){
+    par_plot
+  } else{
+    par_plot  + 
+      theme(axis.title.y=element_blank(),
+            axis.text.y=element_blank(),
+            axis.ticks.y=element_blank(),
+            axis.line.y=element_blank())
+    
+    
+  }
+  
+}
+
+d <- plot_err(var = d, param = expression(delta), first = T) 
+maxi <- plot_err(var = maxima, param = "optimum") 
+e <- plot_err(var = e, param = expression(epsilon)) 
+c <- plot_err(var = c, param = expression(zeta))
+se <- plot_err(var = Mean_mean, var_lo = mmse, var_hi = mpse, param = "depth (cm)", standard = F)
+
+cairo_pdf(filename = "figures/fig3.pdf", width = 9, height = 5)
+d + maxi + e + c + se + plot_layout(nrow = 1)
+dev.off()
+
+```
+
+
+
+
+## Parameter density plot with phylogeny version 2
+```{r}
+
 source("derived_files/state_reg.R")
 #set habitat colors
 colz <- topo.colors(n = 12, alpha = 0.7)[c(11,4)]
@@ -238,7 +473,7 @@ names(colz_par) <- names(state_reg_aqua_terr2terr)
 
 spp_list <- rev(lasth$tip.label[lasth$edge[,2][lasth$edge[,2] <= length(lasth$tip.label)]])
 
-pdf("figures/fig3.pdf")
+#pdf("figures/fig3.pdf")
 #png(filename = "figures/fig4_curves.png")
 
 cnc <- 1
@@ -266,34 +501,41 @@ post_params <- c("d", "maxima", "e", "c")
 greek_params <- c(expression(delta), expression(optima), expression(epsilon), expression(zeta))
 
 
-seq_along(post_params) %>% map(function(x){
+seq_along(post_params) %>% walk(function(x){
   var <- post_params[x]
-den_var <- draws %>% 
-  group_by(Species) %>%
-  do(den = density(.[[var]]))
-
-den_range <- den_var$den %>% map_df(~{
-  xl = quantile(.x$x, 0) 
-  xh = quantile(.x$x, 1)
-  yl = 0
-  yh = quantile(.x$y, 1)
-  cbind(xl, xh, yl, yh) %>% as_data_frame
-}) %>% summarise_all(funs(min, max))
-
-
-names(den_var$den) <- den_var$Species
-seq_along(spp_list) %>% map(~{
- spp_den <- den_var$den[[spp_list[.x]]] 
- plot(spp_den$x, spp_den$y,
-      xlim = c(den_range$xl_min, den_range$xh_max),
-      ylim = c(0, den_range$yh_max),
-      axes = F, type = "n")
- polygon(spp_den$x, spp_den$y, col = colz_par[spp_list[.x]], border  = T)
- if(var == "d") legend("left", spp_list[.x], bty = "n", cex = 0.8)
- })
-axis(1)
-mtext(greek_params[x], side = 1, line = 3)
-}) %>% invisible
+  den_var <- draws %>% 
+    group_by(Species) %>%
+    do(den = density(.[[var]]))
+  
+  den_range <- den_var$den %>% map_df(~{
+    xl = quantile(.x$x, 0) 
+    xh = quantile(.x$x, 1)
+    # xl = quantile(.x$x, 0.025)
+    # xh = quantile(.x$x, 0.975)
+    yl = 0
+    yh = quantile(.x$y, 1)
+    cbind(xl, xh, yl, yh) %>% as_data_frame
+  }) %>% summarise_all(funs(min, max))
+  
+  
+  
+  names(den_var$den) <- den_var$Species
+  
+  seq_along(spp_list) %>% map(~{
+    spp_den <- den_var$den[[spp_list[.x]]] 
+    plot(spp_den$x, spp_den$y,
+         xlim = c(den_range$xl_min, den_range$xh_max),
+         ylim = c(0, den_range$yh_max),
+         axes = F, type = "n")
+    polygon(spp_den$x, spp_den$y, col = colz_par[spp_list[.x]], border  = T)
+    
+    #segments(x0 = , x1 = , y0 = 0, y1 = 0)
+    
+    if(var == "d") legend("left", spp_list[.x], bty = "n", cex = 0.8)
+  })
+  axis(1)
+  mtext(greek_params[x], side = 1, line = 3)
+})
 
 
 select <- dplyr::select
@@ -313,7 +555,7 @@ limz <- gradient %>%
             miny = min(low, na.rm = T)*1.1)
 
 spp_list %>%
-  map(~{
+  walk(~{
     row_i <- gradient %>% filter(taxa == .x)
     par(mar = c(0,0,0,2))
     plot(
@@ -339,8 +581,7 @@ spp_list %>%
       }
   })
 
-dev.off()
-
+#dev.off()
 
 ```
 
@@ -506,7 +747,8 @@ for(spp in spp_list){
 
   spp_mean <- mean_draws %>% filter(Species == spp)
   mean_line <- plot_kumara(xs = seq(0, 1, length.out = 100),
-               a = spp_mean$a, spp_mean$b, spp_mean$c, spp_mean$d, e=spp_mean$e)
+               a = spp_mean$a, spp_mean$b, spp_mean$c, spp_mean$d,
+               e=spp_mean$e)
 
   lines(mean_line[[1]], mean_line[[2]], 
         lwd = 1.5, col = colz[state_reg_aqua_terr2terr[spp]])
@@ -536,7 +778,8 @@ dev.off()
 ```
 
 
-Plotting observed versus predicted
+## Plotting observed versus predicted
+
 ```{r}
 
 meanDraws <- apply(X = posts$mu, 2, mean)
@@ -556,7 +799,7 @@ plot(predDF_nZero$meanDraws, (predDF_nZero$Inflor_biomass - predDF_nZero$meanDra
 points(
   predDF_Zero$meanDraws, 
   (predDF_Zero$Inflor_biomass - predDF_Zero$meanDraws),
-  pch="z", cex=1.5
+  pch=1, col = "blue"
   )
 
 smth <- smooth.spline(predDF_nZero$meanDraws, 
@@ -641,4 +884,47 @@ dev.off()
 
 ```
 
+
+
+## Correlation among parameters, within and among species
+```{r}
+
+theme_set(theme_minimal())
+
+plot_pars <- function(df = draws, par1, par2, text1, text2){
+  
+  par_one <- enquo(par1)
+  par_two <- enquo(par2)
+  
+  draws_sub <- df %>% select(Species, !! par_one, !! par_two) %>%
+    rename( par1 = !! par_one,
+            par2 = !! par_two)
+  
+grid_p <- draws_sub %>%
+  ggplot(aes(par1, par2, colour = Species)) +
+  geom_point(alpha = 0.5) +
+  xlab("") +
+  ylab("") +
+  facet_wrap(~Species, nrow = 2) +
+  theme(legend.position = "none")
+
+all_p <- draws_sub %>%
+  ggplot(aes(par1, par2)) +
+  geom_point(alpha = 0.05) +
+  xlab(text1) +
+  ylab(text2)
+
+grid_p + all_p + plot_layout(nrow = 2)
+
+}
+
+
+plot_pars(par1 = e, par2 = d, text1 = expression(epsilon), text2 = expression(delta))
+  
+
+library(GGally)
+draws %>%
+  select(d, maxima, e, c, Species) %>%
+  ggpairs(aes(colour = Species, alpha = 0.1), discrete = "facetbar")
+```
 

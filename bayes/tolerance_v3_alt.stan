@@ -52,7 +52,7 @@ transformed data {
 
 parameters {
 
-  #species level
+  //species level
   real a_t[numSpp];
   real b_t[numSpp];
   real c_t[numSpp];
@@ -82,7 +82,7 @@ parameters {
   real <lower = 0> sd_nu;
   */
   
-  #gamma shape parameter
+  //gamma shape parameter
   //real nu_t;
   //real nu_t[numSpp];
  

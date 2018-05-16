@@ -1,77 +1,22 @@
 #---------
-
 source("load_data.R")
-source("derived_files/lasth_100_post.R")
-source("derived_files/state_reg.R") #for reg_df
-draws <- read_csv("bayes/stan_par1_df.csv") #draws for penalized zero model
 
 select <- dplyr::select
 rename <- dplyr::rename
 
-gradient <- read.xls("data/Pool depths_FINAL summary_REVISED.xls", 
-                     header = T, skip = 1, stringsAsFactors = F) %>%
-  mutate(taxa = strsplit(X, "_") %>% map_chr(~ .x[length(.x)]),
-         taxa = ifelse(taxa == "deblilis", "debilis", taxa)) %>% 
-  filter(taxa %in% as.character(unique(emery$Species)))
-
-droppers <- which(gradient %>% select(-taxa, -X) %>% apply(1, function(x) mean(is.na(x))) == 1)
-gradient <- gradient[-droppers,]
-
 
 #nothing missing in either direction
-tree_miss <- as.character(unique(emery$Species))[!as.character(unique(emery$Species)) %in% unique(gradient$taxa)]
-unique(gradient$taxa)[!unique(gradient$taxa) %in% as.character(unique(emery$Species))]
+tree_miss <- as.character(unique(emery$Species))[!as.character(unique(emery$Species)) %in% unique(grad$Species)]
+unique(grad$Species)[!unique(grad$Species) %in% as.character(unique(emery$Species))]
 
-col_match <- match(gradient$taxa, as.character(unique(emery$Species)))
+col_match <- match(grad$Species, as.character(unique(emery$Species)))
 col_match <- col_match[!is.na(col_match)]
 
+wide_params <- gen_gradient_df(tolerance_df = draws)
 
 
 ### master dataframe with all parameters, gradient measures, and habitats
 #--------------------------------------
-
-grad <- gradient %>% select(Mean, taxa) %>%
-  rename(Species = taxa)
-
-draws_join <- full_join(x = draws, y = grad, by = "Species") %>%
-  full_join(., reg_df, by = "Species") %>% 
-  gather(param_name, param_value, 
-         -c(draw, Species, Mean, habit, aqua_terr2terr, aqua_terr2vernal))
-
-param_names <- c("area", "d", "maxima", "e", "c", "special", "breadth")
-
-max_draws <- draws_join %>% 
-  filter(param_name %in% param_names) %>%
-  group_by(Species, param_name) %>%
-  summarise_all(.funs = max)
-
-#multivariate prediction of position along vernal pool
-wide_params <- full_join(x = draws, y = grad, by = "Species") %>%
-  full_join(., reg_df, by = "Species")
-
-wide_params <- wide_params %>%
-  select(-c(Species, draw, Mean, habit, aqua_terr2terr, aqua_terr2vernal)) %>% 
-  scale %>% 
-  as_tibble %>%
-  set_colnames( paste0(names(.), "_sc" )) %>%
-  bind_cols(., wide_params) %>%
-  mutate(
-    aqua_terr2terr_bin = ifelse(
-      aqua_terr2terr == "vernal", 0, 1
-      ),
-    aqua_terr2vernal_bin = ifelse(
-      aqua_terr2vernal == "vernal", 0, 1
-      )
-    )
-
-
-#wide_params %>% 
-#  ggplot(aes(x = .$maxima_sc, y = .$e_sc, colour = Species)) +
-#  geom_point()
-
-#wide_params %>% 
-#  select(Species, maxima, area, d, e, breadth) %>%
-#  ggpairs(aes(colour = Species, alpha = 0.1))
 
 mv_plgs <- wide_params %>% 
   group_by(draw) %>%
@@ -393,3 +338,26 @@ cor_c_e %>%
             mean(corr > 0))
 
 hist(cor_c_e$pic_cor, breaks = 500)
+
+
+#old stuff, can probably delete
+# 
+# draws_join <- full_join(x = draws, y = grad, by = "Species") %>%
+#   full_join(., reg_df, by = "Species") %>% 
+#   gather(param_name, param_value, 
+#          -c(draw, Species, Mean, habit, aqua_terr2terr, aqua_terr2vernal))
+# 
+# param_names <- c("area", "d", "maxima", "e", "c", "special", "breadth")
+# 
+# max_draws <- draws_join %>% 
+#   filter(param_name %in% param_names) %>%
+#   group_by(Species, param_name) %>%
+#   summarise_all(.funs = max)
+
+#wide_params %>% 
+#  ggplot(aes(x = .$maxima_sc, y = .$e_sc, colour = Species)) +
+#  geom_point()
+
+#wide_params %>% 
+#  select(Species, maxima, area, d, e, breadth) %>%
+#  ggpairs(aes(colour = Species, alpha = 0.1))

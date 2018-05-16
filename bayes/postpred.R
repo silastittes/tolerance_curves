@@ -54,23 +54,29 @@ mean(post_pred$ssq_obs > post_pred$ssq_pseudo)
 
 pred_spp <- post_pred %>% group_by(Species) %>%
   summarise(lab = as.character(mean(ssq_obs > ssq_pseudo) %>% round(2)),
-            ssq_obs = ssq_obs %>% max*.9,
-            ssq_pseudo = ssq_pseudo %>% max*.9)
+            ssq_obs_mean = ssq_obs %>% mean(),
+            ssq_pseudo_mean = ssq_pseudo %>% mean())
+
+post_pred_pv <- full_join(post_pred, pred_spp, by = "Species") %>%
+  mutate(Species_pv = paste0(Species, " (",lab,")"))
 
 write_csv(pred_spp, "bayes/postpred_zig1_out.csv")
 
-post_plot <- post_pred %>% ggplot(aes(x = ssq_obs, y = ssq_pseudo)) +
-  geom_point(alpha = 0.1, aes(colour = Species)) +
-  geom_text(data = pred_spp, label = pred_spp$lab, size = 2) +
-  facet_wrap(~Species, scales = "free") +
+post_plot <- post_pred_pv %>% ggplot(aes(x = ssq_obs, y = ssq_pseudo)) +
+  geom_point(alpha = 0.1, aes(colour = Species_pv)) +
+  #geom_text_repel(data = pred_spp, label = pred_spp$lab, size = 4) +
+  #facet_wrap(~Species, scales = "free") +
   geom_abline(intercept = 0, slope = 1, lty = 2, col = "blue") +
   ylab("Posterior predictive ssq") +
   xlab("Observed ssq") +
   theme_minimal() +
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
-  theme(text = element_text(size = 4))
+  guides(colour = guide_legend(title = "Species", override.aes = list(alpha = 1))) + 
+  theme(text = element_text(size = 10),
+        legend.text=element_text(size=5))
+  
+post_plot
 
-ggsave("figures/figB12.pdf", plot = post_plot, device = "pdf")
+ggsave("figures/figB12.pdf", width = 5, height = 4, plot = post_plot, device = "pdf")
 #ggsave("analyses_and_viz/postpred.png", plot = post_plot, device = "png")
 
 

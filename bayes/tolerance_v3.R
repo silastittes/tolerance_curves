@@ -1,77 +1,17 @@
 source("tolerance_functions.R")
 
-mod <- rstan::stan_model("bayes/tolerance_v3_alt.stan")
-
 emery <- load_emery()
 
-min_max_df <- emery %>%
-  group_by(sppint) %>%
-  summarise(minx = min(treat),
-            maxx = max(treat))
+#RUN STAN
+stan_out <- gen_tolerance(df = emery, file_id = "")
 
-spp_order <- data.frame(Sp = emery$Species, int = emery$sppint) %>%
-  unique() %>%
-  arrange(int) %>% select(1) %>%
-  as_vector()
-
-
-stan_out <- c(0,1) %>% map(~{
-  
-  stan_in <- list(
-    N = length(emery$Inflor_biomass), 
-    y = emery$Inflor_biomass, 
-    x = emery$treat,
-    minx = c(min_max_df$minx),
-    maxx = c(min_max_df$maxx),
-    numSpp = length(unique(emery$sppint)),
-    sppint = emery$sppint,
-    zig = .x,
-    a_pr_mu = -1, a_pr_sig = 0.2,
-    b_pr_mu = -1, b_pr_sig = 0.2,
-    c_pr_mu = 0, c_pr_sig = 0.4,
-    d_pr_mu = 0, d_pr_sig = 0.4,
-    e_pr_mu = 0, e_pr_sig = 0.4
-    )
-  
-  
-  sampling(mod,
-    data = stan_in,
-    control = list(adapt_delta = 0.8, max_treedepth = 10), 
-    iter = 2000, chains = 4, thin = 10,
-    sample_file = paste0("bayes/samples/tolerance_v3_zig_",.x,".samples"),
-    seed = 2323
-    )
-  })
+summary(stan_out[[1]])$summary
 
 stan_out %>% map(~ print(.x, pars = c("e", "nu")))
 
 traceplot(stan_out[[1]], pars = "e_t")
 
-new_post <- stan_out %>% map(~extract(.x))
-
-params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
-
-
-par_df <- new_post %>% map(function(y){
-  params %>% map( ~{
-    y[[.x]] %>%
-      data.frame() %>%
-      set_colnames(spp_order) %>%
-      gather("Species", x) %>%
-      set_colnames(c("Species", .x)) %>%
-      group_by(Species) %>%
-      mutate(draw = 1:n())
-  }) %>% 
-    do.call(cbind, .) %>%
-    select(-starts_with("Species")) %>%
-    select(-matches("draw[0-9]")) %>%
-    mutate(
-      maxima = (((a - 1)/(a*b - 1))^(1/a) * (e - d) + d),
-      breadth = (e-d),
-      area = c * breadth,
-      special = c/breadth
-      )
-})
+par_df <- gen_stan_df(stan_out, spp_order)
 
 par_set1 <- par_df[[1]] %>% group_by(Species) %>%
   map_kumara(seq(0,1, length.out = 100), .)
@@ -80,6 +20,7 @@ par_set2 <- par_df[[2]] %>% group_by(Species) %>%
   map_kumara2(seq(0,1, length.out = 100), .)
 
 qs <- seq(0,1, length.out = 1000)
+
 q1 <- quantile(par_set1$y, qs)
 q2 <- quantile(par_set2$y, qs)
 plot(q1, q2)
@@ -94,11 +35,11 @@ write.csv(par_set2, file = "bayes/fitted_points_mod2.csv", quote = F, row.names 
 
 ###Delete here down?
 
-#emery2 <- emery %>% select(treat, Inflor_biomass, Species)
-#ggplot() + 
+# emery2 <- emery %>% select(treat, Inflor_biomass, Species)
+# ggplot() +
 #  geom_line(data = par_set1, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "dodgerblue") +
 #  geom_line(data = par_set2, aes(x=x, y=y, group=as.character(draw)), alpha = 0.05, colour = "yellow") +
-#  geom_jitter(data = emery, mapping = aes(x = treat, y = Inflor_biomass), 
+#  geom_jitter(data = emery, mapping = aes(x = treat, y = Inflor_biomass),
 #              height = 0, width = 0.1, alpha = 0.5) +
 #  stat_smooth(data = emery, aes(x=treat, y=Inflor_biomass), se = F, colour = "green") +
 #  facet_wrap(~Species, scales = "free") +

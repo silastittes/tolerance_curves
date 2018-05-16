@@ -13,18 +13,20 @@ figures/fig1.pdf: reactionNorm_conceptPlots2.R
 	Rscript reactionNorm_conceptPlots2.R
 
 
-#create 100 pruned, ultrametric posterior trees
-derived_files/lasth_100_post.R: generate_post_trees.R data/C1.trees
-	Rscript generate_post_trees.R
-
 
 #run stan, and tidy files for downstream analysis and plotting
-bayes/samples/tolerance_v3_*.csv: bayes/tolerance_v3_alt.stan bayes/tolerance_v3.R
+bayes/samples/tolerance_v3_*.csv: bayes/tolerance_v3_alt.stan bayes/tolerance_v3.R tolerance_functions.R
 	Rscript bayes/tolerance_v3.R
 
 #posterior predictive checks plot and pvalue
 figures/fig2.pdf: bayes/postpred.R bayes/samples/tolerance_v3_*.csv 
 	Rscript bayes/postpred.R
+
+
+#create 100 pruned, ultrametric posterior trees
+derived_files/lasth_100_post.R: generate_post_trees.R data/C1.trees
+	Rscript generate_post_trees.R
+
 
 #phylogenetic signal for curves and parameters
 derived_files/curve_K.csv: phylo_signal.R bayes/samples/tolerance_v3_*.csv bayes/stan_par1_df.csv bayes/fitted_points_mod1.csv

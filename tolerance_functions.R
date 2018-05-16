@@ -9,7 +9,8 @@ pkgs <- c("scales", "tidyverse", "parallel",
           "ape", "phytools", "rstan", 
           "gdata", "xtable", "abind",
           "glmnet", "nlme", "ggrepel",
-          "ggjoy", "rlang", "stringr", "rethinking"
+          "ggjoy", "rlang", "stringr", "rethinking", 
+          "patchwork"
           )
 
 needed <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
@@ -32,9 +33,9 @@ library(scales)
 library(tidyverse)
 library(stringr)
 library(magrittr)
+library(patchwork)
 #library(rlang)
 #library(ggjoy)
-#library(ggrepel)
 #library(GGally)
 
 
@@ -48,6 +49,7 @@ library(gdata) #read.xls
 library(xtable)
 library(abind)
 library(glmnet)
+library(ggrepel)
 
 
 #phylo comp tools
@@ -132,6 +134,19 @@ load_emery <- function(){
 #########################################
 #########################################
 
+#the proper version
+tolerance_mu <- function(xs, a, b, c, d, e){
+  x <- (xs - d)/(e-d)
+  x %>% map_dbl(~ {
+    if(.x > 0 & .x < 1){
+      c*((a*b*.x^(a-1) ) * (1-.x^a)^(b-1))
+    } else{
+      0
+    }
+  })
+}
+
+
 #input (0,1) vector, output corresponding values from model described in text.
 stretch_kumara <- function(x, a, b, c){
   return(c*((a*b*x^(a-1) ) * (1-x^a)^(b-1)))
@@ -204,6 +219,8 @@ map_kumara2 <- function(xs, par_df){
 }
 
 
+
+
 #simulate data set for tolerance model
 revmap_kumara <- function(x, par_df){
   #generate model fits where zeros affect parameters directly
@@ -223,7 +240,7 @@ revmap_kumara <- function(x, par_df){
 
 
 
-
+#HIGHEST POSTERIOR DENSITY INTERVAL
 
 #From Max Joseph's course
 HDI <- function(values, percent=0.95){
@@ -253,11 +270,65 @@ load_stanDat <- function(){
  rstan::read_stan_csv(paste0("bayes/samples/", stan_samples))
 }
 
+
+
+
+##############################################
+##############################################
+### CREATE HABITAT DATA FOR LASTHENIA TAXA ###
+##############################################
+##############################################
+
+#THIS ISN'T IDEAL, BUT INFORMATION WAS PUT TOGETHER FROM PREVIOUS PUBLISHED PAPERS,
+#SO HARD TO THINK OF AN ALTERNATIVE BESIDES HARD-CODING IT.
+
+Genus_species <- c("debilis", "ferrisiae", "chrysantha", 
+                   "fremontii", "coulteri", "microglossa",
+                   "platycarpha", "conjugens", "gracilis", 
+                   "minor", "glabrata", "burkei",
+                   "californica", "glaberrima")
+
+state_reg <- c("terrestrial", "vernal", "vernal",
+               "vernal", "vernal", "terrestrial",
+               "aqua_terr", "vernal", "aqua_terr",
+               "terrestrial", "vernal", "vernal",
+               "aqua_terr", "vernal")
+names(state_reg) <- Genus_species
+
+state_reg_aqua_terr2terr <- c("terrestrial", "vernal", "vernal",
+                              "vernal", "vernal", "terrestrial",
+                              "terrestrial", "vernal", "terrestrial",
+                              "terrestrial", "vernal", "vernal",
+                              "terrestrial", "vernal")
+names(state_reg_aqua_terr2terr) <- Genus_species
+
+state_reg_aqua_terr2vernal <- c("terrestrial", "vernal", "vernal",
+                                "vernal", "vernal", "terrestrial",
+                                "vernal", "vernal", "vernal",
+                                "terrestrial", "vernal", "vernal",
+                                "vernal", "vernal")
+names(state_reg_aqua_terr2vernal) <- Genus_species
+
+
+reg_df <- tibble(
+  habit = state_reg, 
+  aqua_terr2terr = state_reg_aqua_terr2terr, 
+  aqua_terr2vernal = state_reg_aqua_terr2vernal, 
+  Species = names(state_reg)
+) 
+
+
+
+
+
+
+
 #########################################
 #########################################
 ############ LOAD PHYLO DATA ############
 #########################################
 #########################################
+
 #Load Tree
 load_lasth <- function(addbr = 0.001){
   #set.seed(seed)
@@ -296,3 +367,318 @@ load_lasth <- function(addbr = 0.001){
 }
 
 #plot(load_lasth())
+
+
+################################
+################################
+#### RUN STAN ON INPUT DATA ####
+################################
+################################
+
+#MANY OPTIONS ARE HARD CODED, BUT CAN AND SHOULD BE CHANGE FOR NEW DATA SETS
+
+gen_tolerance <- function(df, response = Inflor_biomass, 
+                          treatment = treat, group_ids = sppint, 
+                          file_id = NULL, rseed = 2323,
+                          treed = 10,
+                          iters = 5000,
+                            thins = 10){
+  
+  response <- enquo(response)
+  treatment <- enquo(treatment)
+  group_ids <- enquo(group_ids)
+  
+  mod <- rstan::stan_model("bayes/tolerance_v3_alt.stan")
+  
+  min_max_df <- df %>%
+    filter(!! response > 0) %>%
+    group_by( !! group_ids) %>%
+    summarise(minx = min(!! treatment),
+              maxx = max(!! treatment))
+  
+  sel_pull <- function(column){
+    df %>% select(!! column) %>% pull()
+  }
+  
+  stan_out <- c(0,1) %>% map(~{
+    stan_in <- list(
+      N = sel_pull(response) %>% length(), 
+      y = sel_pull(response), 
+      x = sel_pull(treatment),
+      minx = c(min_max_df$minx),
+      maxx = c(min_max_df$maxx),
+      numSpp = sel_pull(group_ids) %>% unique() %>% length(),
+      sppint = sel_pull(group_ids),
+      zig = .x,
+      # a_pr_mu = -1, a_pr_sig = 0.2,
+      # b_pr_mu = -1, b_pr_sig = 0.2,
+      # c_pr_mu = 0, c_pr_sig = 0.4,
+      # d_pr_mu = 0, d_pr_sig = 0.4,
+      # e_pr_mu = 0, e_pr_sig = 0.4
+      
+      #!!!
+      
+      a_pr_mu = -1, a_pr_sig = .5,
+      b_pr_mu = -1, b_pr_sig = .5,
+      c_pr_mu = 0, c_pr_sig = .5,
+      d_pr_mu = 0, d_pr_sig = .5,
+      e_pr_mu = 0, e_pr_sig = .5
+    )
+    
+    adelt <- 0.8
+    
+    chain <- 4
+    
+    
+    if(is.null(file_id)){
+      sampling(mod,
+               data = stan_in,
+               control = list(adapt_delta = adelt, max_treedepth = treed), 
+               iter = iters, chains = chain, thin = thins,
+               seed = rseed
+      )
+    } else {
+      sampling(mod,
+               data = stan_in,
+               control = list(adapt_delta = adelt, max_treedepth = treed), 
+               iter = iters, chains = chain, thin = thins,
+               sample_file = paste0("bayes/samples/tolerance_v3_zig_", .x, eval(substitute(file_id)), ".samples"),
+              seed = rseed
+              )
+      
+    }
+    
+    
+  })
+  
+  stan_out
+}
+
+
+
+
+gen_stan_df_2 <- function(stan_out, species_order){
+  
+  #stan_out output from gen_tolerance()
+  #species_order vector of desired labels matching group_ids used in gen_tolerance()
+  
+  new_post <- stan_out %>% extract()
+  
+  params <- c("d", "e", "a", "b", "c", "nu")
+  
+  par_df <- params %>% map( ~{
+    new_post[[.x]] %>%
+      data.frame() %>%
+      set_colnames(species_order) %>%
+      gather("Species", x) %>%
+      set_colnames(c("Species", .x)) %>%
+      group_by(Species) %>%
+      mutate(draw = 1:n())
+  }) %>% 
+    do.call(cbind, .) %>%
+    select(-starts_with("Species")) %>%
+    select(-matches("draw[0-9]")) %>%
+    mutate(
+      maxima = (((a - 1)/(a*b - 1))^(1/a) * (e - d) + d),
+      breadth = (e-d),
+      area = c * breadth,
+      special = c/breadth
+    )
+  
+  par_df
+}  
+
+
+
+
+sim_tolerance_data <- function(n_spp = 3){
+  
+  
+  #priors
+  mu_sig <- 1
+  
+  a_pr_mu <- 4
+  a_pr_sig <- mu_sig
+  
+  b_pr_mu <- 7
+  b_pr_sig <- mu_sig
+  
+  c_pr_mu <- 0
+  c_pr_sig <- mu_sig
+  
+  d_pr_mu <- -5
+  d_pr_sig <- mu_sig
+  
+  e_pr_mu <- 5
+  e_pr_sig <- mu_sig
+  
+  #generate parameters
+  pr_sig <- 1
+  mu_a <- rnorm(1, a_pr_mu, pr_sig)
+  a <- truncnorm::rtruncnorm(n_spp, a = 2, mean = mu_a, sd = a_pr_sig)
+  
+  mu_b <- rnorm(1, b_pr_mu, pr_sig)
+  b <- truncnorm::rtruncnorm(n_spp, a = 2, mean = mu_b, sd = b_pr_sig)
+  
+  mu_c <- rnorm(1, c_pr_mu, pr_sig)
+  c <- truncnorm::rtruncnorm(n_spp, a = 0, mean = mu_c, sd = c_pr_sig)
+  
+  mu_d <- rnorm(1, d_pr_mu, pr_sig)
+  d <- rnorm(n_spp, mu_d, d_pr_sig)
+  
+  mu_e <- rnorm(1, e_pr_mu, pr_sig)
+  e <- rnorm(n_spp, mu_e, e_pr_sig)
+  
+  ed_test <- 1:n_spp %>% map_lgl(~d[.x] > e[.x]) %>% sum()
+  if(ed_test > 0){
+    stop("parameter d is greater than parameter e")
+  }
+  
+  mu_nu <- truncnorm::rtruncnorm(1, a = 0, mean = 0, sd = 1)
+  nu <- rgamma(n_spp, shape = 10, scale = mu_nu)
+  #nu <- truncnorm::rtruncnorm(n_spp, a = 0, mean = mu_nu, sd = 1)
+  
+  
+  #assume same nu for each group
+  # nu <- rgamma(1, shape = 10, scale = 1) %>%
+  #   rep(n_spp)
+  # 
+  list(a = a, b = b, c = c, d = d, e = e, nu = nu, 
+       mu_a = mu_a, mu_b = mu_b, mu_c = mu_c, 
+       mu_d = mu_d, mu_e = mu_e, mu_nu = mu_nu
+  )
+}
+
+
+
+#create predictions from parameters input -- assumes parameter are scalars
+gen_tolerance_data <- function(xs, a, b, c, d, e, nu, species_id){
+  mu <- tolerance_mu(xs, a, b, c, d, e)
+  zero_idx <- xs < d | xs > e
+  mu_spp <- mu %>% 
+    map_dbl(function(x){
+      rnorm(n = 1, mean = x, sd = (1+x)*1/nu) %>%
+        (function(z) ifelse(z < 0, 0, z)) 
+    }) %>%
+    replace(zero_idx, 0)
+  
+  tibble(x = xs,
+         trait = mu_spp, 
+         mu = mu, 
+         spp = rep(species_id, length(mu))
+  )
+}
+
+
+
+spp_order <- load_emery() %>% 
+ select(Species, sppint) %>%
+ unique() %>%
+ arrange(sppint) %>% 
+ select(1) %>%
+ as_vector()  
+
+gen_stan_df <- function(stan_out, species_order){
+  
+  #stan_out output from gen_tolerance()
+  #species_order vector of desired labels matching group_ids used in gen_tolerance()
+  
+  new_post <- stan_out %>% map(~extract(.x))
+  
+  params <- c("d", "e", "a", "b", "c", "beta_0", "beta_1", "nu")
+  
+  par_df <- new_post %>% map(function(y){
+    params %>% map( ~{
+      y[[.x]] %>%
+        data.frame() %>%
+        set_colnames(species_order) %>%
+        gather("Species", x) %>%
+        set_colnames(c("Species", .x)) %>%
+        group_by(Species) %>%
+        mutate(draw = 1:n())
+    }) %>% 
+      do.call(cbind, .) %>%
+      select(-starts_with("Species")) %>%
+      select(-matches("draw[0-9]")) %>%
+      mutate(
+        maxima = (((a - 1)/(a*b - 1))^(1/a) * (e - d) + d),
+        breadth = (e-d),
+        area = c * breadth,
+        special = c/breadth
+      )
+  })
+  
+  par_df
+}  
+
+
+######################################
+######################################
+#### SIMULATE POSITION ALONG AXIS ####
+######################################
+######################################
+
+rand_axis <- function(reps = 1){
+  emery <- load_emery()
+  s1 <- rgamma(n = 1, shape = 2, scale = 10)
+  s2 <- rgamma(n = 1, shape = 2, scale = 10)
+  treat_map <- rbeta(n = 5, shape1 = s1, shape2 = s2) %>% 
+    sort() %>% (function(x) 1 + (x - min(x)) * ( 5 - 1 ) / (max(x) - min(x))) %>%
+    tibble(treat = 1:5,
+           rand_treat = .)
+  left_join(emery, treat_map, by = "treat")
+}
+
+
+
+########################################
+########################################
+### LOAD AND PREP POOL GRADIENT DATA ###
+########################################
+########################################
+
+load_gradient <- function(){
+  emery <- load_emery()
+  gradient <- read.xls("data/Pool depths_FINAL summary_REVISED.xls", 
+                       header = T, skip = 1, stringsAsFactors = F) %>%
+    mutate(taxa = strsplit(X, "_") %>% map_chr(~ .x[length(.x)]),
+           taxa = ifelse(taxa == "deblilis", "debilis", taxa)) %>% 
+    filter(taxa %in% as.character(unique(emery$Species)))
+  
+  droppers <- which(gradient %>% select(-taxa, -X) %>% apply(1, function(x) mean(is.na(x))) == 1)
+  gradient[-droppers,] %>% 
+    select(Mean, SE, taxa) %>%
+    rename(Species = taxa)
+}
+
+#################################################
+#################################################
+### CONSTRUCT STAN AND GRADIENT COMBINED DATA ###
+#################################################
+#################################################
+
+gen_gradient_df <- function(tolerance_df){
+  
+  grad <- load_gradient()
+  #reg_df is constructed above
+  wide_params <- full_join(x = tolerance_df, y = grad, by = "Species") %>%
+    full_join(., reg_df, by = "Species")
+  
+  wide_params <- wide_params %>%
+    ungroup() %>%
+    select(-c(Species, draw, Mean, SE, habit, aqua_terr2terr, aqua_terr2vernal)) %>% 
+    scale %>% 
+    as_tibble %>%
+    set_colnames( paste0(names(.), "_sc" )) %>%
+    bind_cols(., wide_params) %>%
+    mutate(
+      aqua_terr2terr_bin = ifelse(
+        aqua_terr2terr == "vernal", 0, 1
+      ),
+      aqua_terr2vernal_bin = ifelse(
+        aqua_terr2vernal == "vernal", 0, 1
+      )
+    )
+  
+  wide_params
+}
